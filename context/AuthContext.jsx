@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
     const PROD_URL = import.meta.env.VITE_API_URL || 'https://afacop-backend.onrender.com';
     
     // Exportamos la URL base para sockets y otros componentes
-    const BASE_URL = import.meta.env.VITE_API_URL || (isProd ? PROD_URL : `http://${API_HOST}:4000`);
+    const BASE_URL = import.meta.env.VITE_API_URL || (isProd ? PROD_URL : `http://${API_HOST}:4001`);
 
     console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
   const instance = axios.create({

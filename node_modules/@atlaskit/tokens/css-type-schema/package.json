@@ -1,0 +1,10 @@
+{
+  "name": "@atlaskit/tokens/css-type-schema",
+  "main": "../dist/cjs/entry-points/css-type-schema.codegen.js",
+  "module": "../dist/esm/entry-points/css-type-schema.codegen.js",
+  "module:es2019": "../dist/es2019/entry-points/css-type-schema.codegen.js",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "types": "../dist/types/entry-points/css-type-schema.codegen.d.ts"
+}

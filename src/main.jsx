@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import { AuthProvider } from './context/AuthContext.jsx';
-import { NotificationProvider } from './context/NotificationContext.jsx';
-import './index.css';
+import App from './app/App.jsx';
+import { AuthProvider } from './app/providers/AuthContext.jsx';
+import { NotificationProvider } from './app/providers/NotificationContext.jsx';
+import './app/styles/index.css';
 
 // ── Tema fijo: personalización temporalmente desactivada ────────────────────
 // Se aplica de forma síncrona ANTES del primer render de React.

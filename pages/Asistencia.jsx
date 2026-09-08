@@ -53,7 +53,7 @@ export default function Asistencia() {
   };
 
   const handleDownload = () => {
-    const API_BASE = api.defaults.baseURL || 'http://192.168.1.69:4000';
+    const API_BASE = api.defaults.baseURL || 'http://192.168.1.69:4001';
     window.open(`${API_BASE}/api/asistencia/export?token=${token}`, '_blank');
   };
 
