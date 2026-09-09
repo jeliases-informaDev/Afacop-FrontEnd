@@ -44,10 +44,6 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [actividad, setActividad] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [actPage, setActPage] = useState(0);
-  const ACT_PER_PAGE = 7;
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportStart, setExportStart] = useState('');
   const [exportEnd, setExportEnd] = useState('');
@@ -58,11 +54,10 @@ export default function Dashboard() {
     try {
       const [sRes, aRes] = await Promise.all([
         radarApi.get('/api/dashboard/stats'),
-        radarApi.get('/api/dashboard/actividad?limit=100&offset=0'),
+        radarApi.get('/api/dashboard/actividad'),
       ]);
       setStats(sRes.data.data);
       setActividad(aRes.data.data || []);
-      setPage(0);
     } catch (e) {
       console.error('Error loading dashboard', e);
     } finally {
@@ -83,10 +78,9 @@ export default function Dashboard() {
   useEffect(() => {
     const refreshActivity = async () => {
       try {
-        const response = await radarApi.get('/api/dashboard/actividad?limit=100&offset=0');
+        const response = await radarApi.get('/api/dashboard/actividad');
         const nextActivity = response.data.data || [];
         setActividad(nextActivity);
-        setActPage(current => Math.min(current, Math.max(0, Math.ceil(nextActivity.length / ACT_PER_PAGE) - 1)));
       } catch (error) {
         console.error('No se pudo sincronizar la actividad reciente', error);
       }
@@ -126,18 +120,6 @@ export default function Dashboard() {
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [radarApi]);
-
-
-  const handleLoadMore = async () => {
-    setLoadingMore(true);
-    const next = page + 1;
-    try {
-      const res = await radarApi.get(`/api/dashboard/actividad?limit=10&offset=${next * 10}`);
-      setActividad(prev => [...prev, ...(res.data.data || [])]);
-      setPage(next);
-    } catch (e) { console.error(e); }
-    finally { setLoadingMore(false); }
-  };
 
   const handleExport = async () => {
     const params = {};
@@ -271,8 +253,6 @@ export default function Dashboard() {
           </div>
 
           {(() => {
-            const totalPages = Math.ceil(actividad.length / ACT_PER_PAGE);
-            const pageItems = actividad.slice(actPage * ACT_PER_PAGE, (actPage + 1) * ACT_PER_PAGE);
             return (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -284,7 +264,7 @@ export default function Dashboard() {
                         Aquí aparecerán los inicios y cierres de rutas, visitas y resultados de gestión en campo.
                       </p>
                     </div>
-                  ) : pageItems.map((a, idx) => {
+                  ) : actividad.map((a, idx) => {
                     const activityStatus = String(a.tipificacion || '').trim().toUpperCase();
                     let flagColor = '#6C757D';
                     if (activityStatus === 'NO_ENCONTRADO' || activityStatus === 'NO_ECONTRADO') flagColor = '#EF4444';
@@ -315,33 +295,6 @@ export default function Dashboard() {
                   })}
                 </div>
 
-                {totalPages > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTop: '1px solid #E5E7EB' }}>
-                    <span style={{ fontSize: 12, color: '#6C757D' }}>
-                      {actPage * ACT_PER_PAGE + 1}–{Math.min((actPage + 1) * ACT_PER_PAGE, actividad.length)} de {actividad.length}
-                    </span>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        onClick={() => setActPage(p => Math.max(0, p - 1))}
-                        disabled={actPage === 0}
-                        style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #E5E7EB', background: actPage === 0 ? '#F9FAFB' : '#fff', color: actPage === 0 ? '#9CA3AF' : '#374151', fontSize: 12, fontWeight: 700, cursor: actPage === 0 ? 'default' : 'pointer' }}>
-                        ‹ Ant
-                      </button>
-                      {Array.from({ length: totalPages }, (_, i) => (
-                        <button key={i} onClick={() => setActPage(i)}
-                          style={{ padding: '4px 9px', borderRadius: 6, border: '1px solid #E5E7EB', background: actPage === i ? 'var(--c-primary)' : '#fff', color: actPage === i ? '#fff' : '#374151', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                          {i + 1}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => setActPage(p => Math.min(totalPages - 1, p + 1))}
-                        disabled={actPage === totalPages - 1}
-                        style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #E5E7EB', background: actPage === totalPages - 1 ? '#F9FAFB' : '#fff', color: actPage === totalPages - 1 ? '#9CA3AF' : '#374151', fontSize: 12, fontWeight: 700, cursor: actPage === totalPages - 1 ? 'default' : 'pointer' }}>
-                        Sig ›
-                      </button>
-                    </div>
-                  </div>
-                )}
               </>
             );
           })()}
