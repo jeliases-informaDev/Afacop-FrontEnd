@@ -98,7 +98,10 @@
 }
 
 .sidebar-subtitle {
-  padding: 24px 24px 8px 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 24px 8px 18px;
   font-size: 10px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.6) !important;
@@ -110,9 +113,8 @@
 
 .sidebar-subtitle::before {
   content: '';
-  position: absolute;
-  left: 18px;
-  top: 27px;
+  display: block;
+  flex: 0 0 6px;
   width: 6px;
   height: 6px;
   border-radius: 2px;
@@ -2404,7 +2406,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
-  .sidebar-subtitle { display: block; padding: 16px 10px 6px; font-size: 10px; }
+  .sidebar-subtitle { display: flex; padding: 16px 10px 6px; font-size: 10px; }
   .sidebar-nav { display: flex; flex-direction: column; padding: 0; gap: 5px; }
   .sidebar-nav li { width: 100%; }
   .sidebar-nav li a { width: 100%; min-height: 44px; padding: 11px 13px; font-size: 13px; white-space: normal; }

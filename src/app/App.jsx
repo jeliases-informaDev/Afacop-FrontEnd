@@ -62,6 +62,7 @@ function Sidebar() {
   }, []);
 
   const can = (mod) => tieneAcceso(mod);
+  const showOperationsSection = user?.rol !== 'GERENTE' && can('asesores');
   const rolCfg = user ? (rolesConfig || ROLES_CONFIG)[user.rol] : null;
   const toggleSidebar = () => {
     setCollapsed(value => {
@@ -127,10 +128,14 @@ function Sidebar() {
           {can('rutas')    && <li><NavLink to="/rutas" onClick={closeMobileMenu} title={MODULOS.rutas.label} className={({ isActive }) => isActive ? 'active' : ''}><Icon name="routes" /><span>{MODULOS.rutas.label}</span></NavLink></li>}
         </ul>
 
-        <div className="sidebar-subtitle">OPERACIONES</div>
-        <ul className="sidebar-nav">
-          {can('asesores') && <li><NavLink to="/workers" onClick={closeMobileMenu} title={MODULOS.asesores.label} className={({ isActive }) => isActive ? 'active' : ''}><Icon name="workers" /><span>{MODULOS.asesores.label}</span></NavLink></li>}
-        </ul>
+        {showOperationsSection && (
+          <>
+            <div className="sidebar-subtitle">OPERACIONES</div>
+            <ul className="sidebar-nav">
+              <li><NavLink to="/workers" onClick={closeMobileMenu} title={MODULOS.asesores.label} className={({ isActive }) => isActive ? 'active' : ''}><Icon name="workers" /><span>{MODULOS.asesores.label}</span></NavLink></li>
+            </ul>
+          </>
+        )}
 
         {can('acceso') && (
           <>
