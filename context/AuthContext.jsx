@@ -13,42 +13,54 @@ export const AuthProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : { id: '11111111-1111-1111-1111-000000000001', nombre: 'Lima' };
   });
 
-  // useMemo for the api instance so it recreates only when token or sedeActual changes
+  // 1. Instancia de API Principal con Interceptor (SOLUCIÓN ERROR 401)
   const apiData = React.useMemo(() => {
-    // Lógica de URLs para Producción vs Local
     const isProd = window.location.hostname !== 'localhost' && !window.location.hostname.includes('192.168');
     const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const PROD_URL = import.meta.env.VITE_API_URL || 'https://afacop-backend.onrender.com';
-    
-    // Exportamos la URL base para sockets y otros componentes
     const BASE_URL = import.meta.env.VITE_API_URL || (isProd ? PROD_URL : `http://${API_HOST}:4001`);
 
     console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
-  const instance = axios.create({
-      baseURL: BASE_URL,
-      headers: { 
-        Authorization: token ? `Bearer ${token}` : undefined,
-        'x-sede-id': sedeActual?.id
-      },
+    
+    const instance = axios.create({ baseURL: BASE_URL });
+
+    // Interceptor: Inyecta token y sede mágicamente antes de cada petición
+    instance.interceptors.request.use((config) => {
+      const currentToken = localStorage.getItem('token');
+      if (currentToken) config.headers.Authorization = `Bearer ${currentToken}`;
+      
+      const savedSede = localStorage.getItem('sedeActual');
+      if (savedSede) config.headers['x-sede-id'] = JSON.parse(savedSede).id;
+      
+      return config;
     });
+
     return { instance, BASE_URL };
-  }, [token, sedeActual]);
+  }, []); // <--- Dependencias vacías para no destruir la instancia
 
   const api = apiData.instance;
   const API_BASE_URL = apiData.BASE_URL;
 
+  // 2. Instancia de API Radar con Interceptor (SOLUCIÓN ERROR 401)
   const radarApi = React.useMemo(() => {
     const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const RADAR_BASE_URL = import.meta.env.VITE_RADAR_API_URL || `http://${API_HOST}:4001`;
 
-    return axios.create({
-      baseURL: RADAR_BASE_URL,
-      headers: {
-        Authorization: token ? `Bearer ${token}` : undefined,
-        'x-sede-id': sedeActual?.id
-      },
+    const instance = axios.create({ baseURL: RADAR_BASE_URL });
+
+    // Interceptor para Radar API
+    instance.interceptors.request.use((config) => {
+      const currentToken = localStorage.getItem('token');
+      if (currentToken) config.headers.Authorization = `Bearer ${currentToken}`;
+      
+      const savedSede = localStorage.getItem('sedeActual');
+      if (savedSede) config.headers['x-sede-id'] = JSON.parse(savedSede).id;
+      
+      return config;
     });
-  }, [token, sedeActual]);
+
+    return instance;
+  }, []); // <--- Dependencias vacías para no destruir la instancia
 
   const login = async (username, password) => {
     const response = await radarApi.post('/api/auth/login', { username, password });
@@ -96,7 +108,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   // ── TEMA FIJO (personalización temporalmente desactivada) ────────────────
-  // Para reactivar la personalización: cambiar THEME_LOCKED a false
   const THEME_LOCKED = true;
 
   const FIXED_THEME_VARS = {
@@ -117,7 +128,6 @@ export const AuthProvider = ({ children }) => {
     '--font-main':     'Inter',
   };
 
-  // Tema predeterminado como referencia segura (usado cuando THEME_LOCKED = false)
   const PREDETERMINADO_THEME = {
     sidebar_bg: '#0B22A1',
     sidebar_text: '#FFFFFF',
@@ -129,21 +139,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const applyStyles = () => {
-    // Cuando THEME_LOCKED = true, siempre aplica el tema fijo independientemente del parámetro
     const root = document.documentElement;
     Object.entries(FIXED_THEME_VARS).forEach(([k, v]) => root.style.setProperty(k, v));
     root.setAttribute('data-theme', 'light');
-    // No guardar en localStorage para que el siguiente reload también use el tema fijo
   };
 
-  // Fetch and apply theme on mount/auth
   const fetchAndApplyTheme = async () => {
-    // Mientras THEME_LOCKED = true: ignorar DB y aplicar tema fijo directamente
     if (THEME_LOCKED) {
       applyStyles(null);
       return;
     }
-    // ── Código original (se activa cuando THEME_LOCKED = false) ──────────────
     try {
       const cached = localStorage.getItem('cachedTheme');
       if (cached) applyStyles(JSON.parse(cached));
