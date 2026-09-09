@@ -174,7 +174,7 @@ function Topbar({ title }) {
       <div className="topbar-left">
         <span className="topbar-title">{title}</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '5px 12px', background: '#F8F9FA', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span style={{ fontSize: '11px', color: '#9CA3AF' }}>📅</span>
         <span style={{ fontSize: '11px', fontWeight: '600', color: '#6C757D', letterSpacing: '0.2px' }}>{dateStr}</span>
       </div>
