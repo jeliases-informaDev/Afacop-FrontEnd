@@ -58,8 +58,8 @@ function getApiUrl() {
   // una variable antigua del panel de Render vuelva a dirigir el login a otro servicio.
   if (import.meta.env.PROD) return PRODUCTION_API_URL;
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/$/, "");
-  if (typeof window === "undefined") return "http://localhost:4000";
-  return `http://${window.location.hostname}:4000`;
+  if (typeof window === "undefined") return "http://localhost:4001";
+  return `http://${window.location.hostname}:4001`;
 }
 
 function normalizeUser(user) {

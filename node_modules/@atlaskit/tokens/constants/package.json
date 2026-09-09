@@ -1,0 +1,10 @@
+{
+  "name": "@atlaskit/tokens/constants",
+  "main": "../dist/cjs/entry-points/constants.js",
+  "module": "../dist/esm/entry-points/constants.js",
+  "module:es2019": "../dist/es2019/entry-points/constants.js",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "types": "../dist/types/entry-points/constants.d.ts"
+}

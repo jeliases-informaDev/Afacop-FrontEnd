@@ -1,0 +1,10 @@
+{
+  "name": "@atlaskit/tokens/get-token-value",
+  "main": "../dist/cjs/entry-points/get-token-value.js",
+  "module": "../dist/esm/entry-points/get-token-value.js",
+  "module:es2019": "../dist/es2019/entry-points/get-token-value.js",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "types": "../dist/types/entry-points/get-token-value.d.ts"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@atlaskit/tokens/custom-themes",
+  "main": "../dist/cjs/entry-points/custom-themes.js",
+  "module": "../dist/esm/entry-points/custom-themes.js",
+  "module:es2019": "../dist/es2019/entry-points/custom-themes.js",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "types": "../dist/types/entry-points/custom-themes.d.ts"
+}

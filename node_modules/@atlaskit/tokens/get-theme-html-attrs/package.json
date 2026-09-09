@@ -1,0 +1,10 @@
+{
+  "name": "@atlaskit/tokens/get-theme-html-attrs",
+  "main": "../dist/cjs/entry-points/get-theme-html-attrs.js",
+  "module": "../dist/esm/entry-points/get-theme-html-attrs.js",
+  "module:es2019": "../dist/es2019/entry-points/get-theme-html-attrs.js",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "types": "../dist/types/entry-points/get-theme-html-attrs.d.ts"
+}

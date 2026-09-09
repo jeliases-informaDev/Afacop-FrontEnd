@@ -81,7 +81,7 @@ export default function Ciclos() {
   };
 
   const handleDownloadGestionados = () => {
-    const API_BASE = api.defaults.baseURL || 'http://localhost:4000';
+    const API_BASE = api.defaults.baseURL || 'http://localhost:4001';
     window.open(`${API_BASE}/api/asistencia/ciclos/export?token=${token}`, '_blank');
   };
 

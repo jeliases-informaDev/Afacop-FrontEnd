@@ -1,0 +1,10 @@
+{
+  "name": "@atlaskit/tokens/token-ids",
+  "main": "../dist/cjs/entry-points/token-ids.js",
+  "module": "../dist/esm/entry-points/token-ids.js",
+  "module:es2019": "../dist/es2019/entry-points/token-ids.js",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "types": "../dist/types/entry-points/token-ids.d.ts"
+}

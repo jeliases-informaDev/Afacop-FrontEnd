@@ -1,0 +1,10 @@
+{
+  "name": "@atlaskit/tokens/use-theme-observer",
+  "main": "../dist/cjs/entry-points/use-theme-observer.js",
+  "module": "../dist/esm/entry-points/use-theme-observer.js",
+  "module:es2019": "../dist/es2019/entry-points/use-theme-observer.js",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "types": "../dist/types/entry-points/use-theme-observer.d.ts"
+}

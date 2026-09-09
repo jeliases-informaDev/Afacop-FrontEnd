@@ -1,0 +1,10 @@
+{
+  "name": "@atlaskit/tokens/theme-state-transformer",
+  "main": "../dist/cjs/entry-points/theme-state-transformer.js",
+  "module": "../dist/esm/entry-points/theme-state-transformer.js",
+  "module:es2019": "../dist/es2019/entry-points/theme-state-transformer.js",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "types": "../dist/types/entry-points/theme-state-transformer.d.ts"
+}

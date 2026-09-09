@@ -1,0 +1,151 @@
+.swal2-container.app-swal-container {
+  z-index: 40000 !important;
+  padding: 18px;
+}
+
+.app-swal-popup {
+  width: min(440px, calc(100vw - 32px));
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  color: #111827;
+  box-shadow: 0 12px 14px rgba(15, 23, 42, 0.12);
+}
+
+.app-swal-icon {
+  margin: 4px auto 16px;
+}
+
+.app-swal-title {
+  padding: 0;
+  color: #111827;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.app-swal-content {
+  margin: 12px 0 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.app-swal-actions {
+  margin-top: 24px;
+}
+
+.app-swal-confirm {
+  min-width: 150px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: #0b22a1;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 22px;
+  transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.app-swal-confirm:hover {
+  background: #081a7a;
+}
+
+.app-swal-confirm:focus-visible {
+  outline: 3px solid rgba(11, 34, 161, 0.24);
+  outline-offset: 2px;
+}
+
+.app-swal-confirm:active {
+  transform: translateY(1px);
+}
+
+.app-swal-summary {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  text-align: left;
+}
+
+.app-swal-summary p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 10px 12px;
+}
+
+.app-swal-summary b {
+  color: #0b22a1;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.app-swal-summary span {
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.app-swal-show {
+  animation: appSwalIn 180ms ease-out;
+}
+
+.app-swal-hide {
+  animation: appSwalOut 130ms ease-in forwards;
+}
+
+@keyframes appSwalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes appSwalOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-swal-confirm,
+  .app-swal-show,
+  .app-swal-hide {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-swal-popup {
+    padding: 24px 18px 20px;
+  }
+
+  .app-swal-title {
+    font-size: 20px;
+  }
+
+  .app-swal-confirm {
+    width: 100%;
+  }
+}
