@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import CustomDatePicker from '../../shared/ui/CustomDatePicker.jsx';
+import { AppAlert } from '../../shared/utils/alerts/alerts.js';
 import {
   User, MapPin, Phone, Mail, Home, Building2, Shield,
   AlertTriangle, WifiOff, Calendar, ChevronUp, ChevronDown,
@@ -21,6 +22,8 @@ const ESTADO_COLORS = {
 const escapeHtml = value => String(value ?? '—')
   .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
   .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+
+const CLIENT_TEMPLATE_FILE_NAME = 'plantilla_clientes_radar360.xlsx';
 
 function EstadoBadge({ estado }) {
   const cfg = ESTADO_COLORS[estado] || { bg: 'var(--c-surface-2)', text: 'var(--c-muted)', label: estado };
@@ -180,13 +183,13 @@ export default function Clientes() {
       const url = URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'plantilla_clientes_radar360.xlsx';
+      link.download = CLIENT_TEMPLATE_FILE_NAME;
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      alert('No se pudo descargar la plantilla: ' + (err.response?.data?.error || err.message));
+      AppAlert.error('No se pudo descargar la plantilla', err.response?.data?.error || err.message);
     } finally {
       setDownloadingTemplate(false);
     }
@@ -195,29 +198,67 @@ export default function Clientes() {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (file.name !== CLIENT_TEMPLATE_FILE_NAME) {
+      AppAlert.warning(
+        'Archivo no permitido',
+        `Debes subir la plantilla oficial: ${CLIENT_TEMPLATE_FILE_NAME}`
+      );
+
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setImportingClients(true);
+
     const formData = new FormData();
     formData.append('file', file);
+
     try {
       const response = await radarApi.post('/api/importaciones/clientes', formData);
+
       let job;
       let attempts = 0;
+
       do {
         await new Promise(resolve => setTimeout(resolve, 1500));
-        job = (await radarApi.get(`/api/importaciones/${response.data.data.id}`)).data.data;
+
+        const jobResponse = await radarApi.get(`/api/importaciones/${response.data.data.id}`);
+        job = jobResponse.data.data;
         attempts++;
-        if (attempts >= 1200) throw new Error('La importación continúa en proceso. Puede revisar su estado más tarde.');
+
+        if (attempts >= 1200) {
+          throw new Error('La importación continúa en proceso. Puede revisar su estado más tarde.');
+        }
       } while (['PENDIENTE', 'PROCESANDO'].includes(job.estado));
-      if (job.estado !== 'COMPLETADA') throw new Error(job.detalle_error?.[0]?.mensaje || 'La importación no pudo completarse');
-      alert(`Importación completada: ${job.insertadas} nuevos, ${job.actualizadas || 0} actualizados, ${job.omitidas} duplicados internos y ${job.errores} errores.`);
+
+      if (job.estado !== 'COMPLETADA') {
+        throw new Error(job.detalle_error?.[0]?.mensaje || 'La importación no pudo completarse');
+      }
+
+      AppAlert.importSummary({
+        insertadas: job.insertadas,
+        actualizadas: job.actualizadas || 0,
+        omitidas: job.omitidas,
+        errores: job.errores
+      });
+
       setFilters({ search: '', distrito: '', estado: '', fecha_pago: '' });
       setPagination(prev => ({ ...prev, page: 1 }));
     } catch (err) {
       console.error('Error importing Excel:', err);
-      alert('Error al importar clientes: ' + (err.response?.data?.error || err.response?.data?.message || err.message || 'Error desconocido'));
+
+      AppAlert.error(
+        'Error al importar clientes',
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          err.message ||
+          'Error desconocido'
+      );
     } finally {
       setImportingClients(false);
       setShowImportGuide(false);
+
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };

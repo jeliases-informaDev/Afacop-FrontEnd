@@ -11,6 +11,7 @@ import {
 import { getAvatarUrl } from '../../shared/utils/avatar.js';
 import CustomDatePicker from '../../shared/ui/CustomDatePicker';
 
+
 /* ── Counter ─────────────────────────────────────────────────── */
 function AnimatedNumber({ value }) {
   // No animar el KPI: un valor intermedio puede confundirse con el total real.
@@ -39,7 +40,7 @@ const getActivityLabel = value => activityLabels[value] || String(value || 'Gest
 
 /* ════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-  const { radarApi, sedeActual } = useContext(AuthContext);
+  const { radarApi, sedeActual, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [actividad, setActividad] = useState([]);
@@ -53,6 +54,8 @@ export default function Dashboard() {
   const [exportEnd, setExportEnd] = useState('');
   const effectiveness = Math.max(0, Math.min(100, Number(stats?.efectividadCobranza || 0)));
   const recoveredAmount = Number(stats?.montoRecuperado || 0);
+  const showRoutesButton = user?.rol !== 'GERENTE';
+  const showExportButton = user?.rol !== 'GERENTE';
 
   const fetchData = useCallback(async () => {
     try {
@@ -183,7 +186,15 @@ export default function Dashboard() {
       Icon: Wallet, bgColor: 'linear-gradient(135deg, #059669, #34D399)', shadowColor: '#34D399',
     },
     { label: 'Asesores en Campo', value: stats.workersActivos, sub: 'Operativos ahora', Icon: Activity, bgColor: 'linear-gradient(135deg, #D97706, #FACC15)', shadowColor: '#FACC15' },
-    { label: 'Rutas del Día', value: stats.rutasHoy, sub: 'Programadas y en curso', Icon: MapIcon, bgColor: 'linear-gradient(135deg, #DC2626, #F87171)', shadowColor: '#F87171', onClick: () => navigate('/rutas') },
+    {
+      label: 'Rutas del Día',
+      value: stats.rutasHoy,
+      sub: 'Programadas y en curso',
+      Icon: MapIcon,
+      bgColor: 'linear-gradient(135deg, #DC2626, #F87171)',
+      shadowColor: '#F87171',
+      onClick: showRoutesButton ? () => navigate('/rutas') : undefined
+    },
   ];
 
   return (
@@ -205,9 +216,11 @@ export default function Dashboard() {
           <button type="button" style={{ ...S.btnPrimary, flex: 1, justifyContent: 'center' }} onClick={() => navigate('/admision')}>
             <TrendingUp size={16} /> Nueva Evaluación
           </button>
-          <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/rutas')}>
-            <Route size={16} /> Rutas del Día
-          </button>
+          {showRoutesButton && (
+            <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/rutas')}>
+              <Route size={16} /> Rutas del Día
+            </button>
+          )}
           <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/map')}>
             <MapPin size={16} /> Ver en Mapa
           </button>
@@ -259,15 +272,17 @@ export default function Dashboard() {
               <h3 style={S.cardTitle}>Actividad reciente</h3>
               <p style={S.cardSub}>Últimas gestiones registradas en campo</p>
             </div>
-            <button
-              className="btn-outline"
-              onClick={() => setShowExportModal(true)}
-              disabled={actividad.length === 0}
-              title={actividad.length === 0 ? 'La exportación se habilitará cuando exista actividad registrada' : 'Exportar historial de actividad'}
-              style={actividad.length === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-            >
-              <Download size={14} /> Exportar
-            </button>
+            {showExportButton && (
+              <button
+                className="btn-outline"
+                onClick={() => setShowExportModal(true)}
+                disabled={actividad.length === 0}
+                title={actividad.length === 0 ? 'La exportación se habilitará cuando exista actividad registrada' : 'Exportar historial de actividad'}
+                style={actividad.length === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+              >
+                <Download size={14} /> Exportar
+              </button>
+            )}
           </div>
 
           {(() => {

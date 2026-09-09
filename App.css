@@ -153,6 +153,12 @@
   overflow: hidden;
 }
 
+.profile-avatar-neutral {
+  background: var(--c-surface-2) !important;
+  border: 1px solid var(--c-border);
+  color: var(--c-text) !important;
+}
+
 .avatar-small img {
   width: 100%;
   height: 100%;

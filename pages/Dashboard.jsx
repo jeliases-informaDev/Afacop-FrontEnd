@@ -28,7 +28,7 @@ const getEstado = (key) => estadoMeta[key] || estadoMeta.DEFAULT;
 
 /* ════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-  const { radarApi, token, sedeActual } = useContext(AuthContext);
+  const { radarApi, token, sedeActual, user } = useContext(AuthContext);
   const [stats, setStats] = useState(null);
   const [actividad, setActividad] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +37,7 @@ export default function Dashboard() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportStart, setExportStart] = useState('');
   const [exportEnd, setExportEnd] = useState('');
+  const showExportButton = user?.rol !== 'GERENTE';
 
   const fetchData = useCallback(async () => {
     try {
@@ -165,9 +166,11 @@ export default function Dashboard() {
               <h3 style={S.cardTitle}>Actividad reciente</h3>
               <p style={S.cardSub}>Últimas gestiones registradas en campo</p>
             </div>
-            <button className="btn-outline" onClick={() => setShowExportModal(true)}>
-              <Download size={14} /> Exportar
-            </button>
+            {showExportButton && (
+              <button className="btn-outline" onClick={() => setShowExportModal(true)}>
+                <Download size={14} /> Exportar
+              </button>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column' }}>

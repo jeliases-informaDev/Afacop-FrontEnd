@@ -182,7 +182,9 @@ function Topbar({ title }) {
         <div className="profile-container" ref={dropdownRef}>
           <button className="profile-trigger" onClick={() => setShowMenu(!showMenu)}
             style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.05)', padding: '6px 14px', borderRadius: '14px', border: '1px solid var(--c-border)', transition: 'all 0.2s' }}>
-            <div className="avatar-small">{user?.nombres ? user.nombres[0].toUpperCase() : 'A'}</div>
+            <div className="avatar-small profile-avatar-neutral">
+              {user?.nombres ? user.nombres[0].toUpperCase() : 'A'}
+            </div>
             <div style={{ textAlign: 'left', lineHeight: '1.2' }}>
               <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--c-text)' }}>
                 {user?.nombres ? user.nombres.split(' ')[0] : (user?.username || 'Admin')}

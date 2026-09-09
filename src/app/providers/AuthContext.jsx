@@ -16,7 +16,7 @@ export const MODULOS = {
 
 export const ROLES_CONFIG = {
   ADMINISTRADOR: { label: "Administrador", color: "#0B22A1", bg: "rgba(11,34,161,0.1)", modulos: Object.keys(MODULOS), descripcion: "Acceso completo a todos los módulos y configuración del sistema." },
-  GERENTE: { label: "Gerente", color: "#7C3AED", bg: "rgba(124,58,237,0.1)", modulos: ["principal", "mapa", "clientes", "asesores", "admision", "rutas"], descripcion: "Visibilidad total operativa sin acceso al control de usuarios." },
+  GERENTE: { label: "Gerente", color: "#7C3AED", bg: "rgba(124,58,237,0.1)", modulos: ["principal", "mapa", "admision"], descripcion: "Visibilidad total operativa sin acceso al control de usuarios." },
   SUPERVISOR: { label: "Supervisor", color: "#0891B2", bg: "rgba(8,145,178,0.1)", modulos: ["principal", "mapa", "clientes", "asesores", "rutas"], descripcion: "Supervisión de campo: rutas, asesores y clientes." },
   ASESOR: { label: "Asesor", color: "#059669", bg: "rgba(5,150,105,0.1)", modulos: [], canal: "MOVIL", descripcion: "Acceso exclusivo al aplicativo móvil para su ruta, cartera, mapa y evidencias." },
   AUDITOR: { label: "Auditor", color: "#D97706", bg: "rgba(217,119,6,0.1)", modulos: ["principal", "clientes", "admision"], descripcion: "Solo lectura para auditoría de clientes y admisión." },
