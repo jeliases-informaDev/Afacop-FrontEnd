@@ -7,7 +7,6 @@ import { ChevronRight, MapPin, FileText, Calendar, User as UserIcon, X, Search a
 import { getAvatarUrl } from '../../shared/utils/avatar.js';
 
 function parseGoogleMapsLink(url) {
-  // Formatos: @lat,lng | ?q=lat,lng | /place/.../@lat,lng | maps?q=lat,lng | ll=lat,lng
   const patterns = [
     /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
     /@(-?\d+\.\d+),(-?\d+\.\d+)/,
@@ -23,7 +22,7 @@ function parseGoogleMapsLink(url) {
 }
 
 function LocationInput({ latitud, longitud, onChange, radarApi, onDistrictChange }) {
-  const [mode, setMode] = useState('link'); // 'link' | 'address'
+  const [mode, setMode] = useState('link');
   const [linkValue, setLinkValue] = useState('');
   const [addressValue, setAddressValue] = useState('');
   const [parsed, setParsed] = useState(null);
@@ -83,53 +82,28 @@ function LocationInput({ latitud, longitud, onChange, radarApi, onDistrictChange
 
   return (
     <div>
-      {/* Selector de modo */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', background: 'var(--c-surface-2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--c-border)' }}>
-        <button type="button" style={tabStyle(mode === 'link')} onClick={() => setMode('link')}>
-          🔗 Enlace de Google Maps
-        </button>
-        <button type="button" style={tabStyle(mode === 'address')} onClick={() => setMode('address')}>
-          📍 Dirección exacta
-        </button>
+        <button type="button" style={tabStyle(mode === 'link')} onClick={() => setMode('link')}>🔗 Enlace de Google Maps</button>
+        <button type="button" style={tabStyle(mode === 'address')} onClick={() => setMode('address')}>📍 Dirección exacta</button>
       </div>
 
       {mode === 'link' ? (
         <div>
-          <input
-            className="form-input"
-            style={{ background: 'var(--c-surface)', borderColor: error ? '#ef4444' : undefined }}
-            placeholder="Pega el enlace de Google Maps o 'Compartir ubicación'..."
-            value={linkValue}
-            onChange={e => handleLinkChange(e.target.value)}
-          />
+          <input className="form-input" style={{ background: 'var(--c-surface)', borderColor: error ? '#ef4444' : undefined }} placeholder="Pega el enlace de Google Maps o 'Compartir ubicación'..." value={linkValue} onChange={e => handleLinkChange(e.target.value)} />
           {error && <p style={{ fontSize: '11px', color: '#ef4444', marginTop: '5px' }}>{error}</p>}
           {resolvingDistrict && <p style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '5px' }}>Identificando distrito...</p>}
           {parsed && (
             <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>
-                ✓ Lat: {parsed.lat}
-              </div>
-              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>
-                ✓ Lng: {parsed.lng}
-              </div>
+              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>✓ Lat: {parsed.lat}</div>
+              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>✓ Lng: {parsed.lng}</div>
             </div>
           )}
-          <p style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '6px' }}>
-            En Google Maps: toca el punto → "Compartir" → copia el enlace.
-          </p>
+          <p style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '6px' }}>En Google Maps: toca el punto → "Compartir" → copia el enlace.</p>
         </div>
       ) : (
         <div>
-          <input
-            className="form-input"
-            style={{ background: 'var(--c-surface)' }}
-            placeholder="Ej: Av. Javier Prado Este 4200, Lima, Perú"
-            value={addressValue}
-            onChange={e => { setAddressValue(e.target.value); onChange('', ''); }}
-          />
-          <p style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '6px' }}>
-            Escribe la dirección completa incluyendo distrito y ciudad.
-          </p>
+          <input className="form-input" style={{ background: 'var(--c-surface)' }} placeholder="Ej: Av. Javier Prado Este 4200, Lima, Perú" value={addressValue} onChange={e => { setAddressValue(e.target.value); onChange('', ''); }} />
+          <p style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '6px' }}>Escribe la dirección completa incluyendo distrito y ciudad.</p>
         </div>
       )}
     </div>
@@ -169,21 +143,16 @@ export default function Workers() {
 
   const [editingWorker, setEditingWorker] = useState(null);
   const [statusWorker, setStatusWorker] = useState(null);
-
   const fileInputRef = useRef(null);
 
-  const handleImportExcel = () => {
-    fileInputRef.current?.click();
-  };
+  const handleImportExcel = () => { fileInputRef.current?.click(); };
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append('file', file);
     setCreating(true);
-
     try {
       const res = await radarApi.post('/api/importaciones/asesores', formData);
       let job;
@@ -198,7 +167,6 @@ export default function Workers() {
       res.data.insertados = job.insertadas;
       res.data.errores = job.errores;
       showToast(`Importación completada:\n- Insertados: ${res.data.insertados}\n- Errores: ${res.data.errores}`, 'success');
-      // Refrescar listado
       const workersRes = await radarApi.get('/api/asesores');
       setWorkers(workersRes.data.data || []);
     } catch (err) {
@@ -226,39 +194,78 @@ export default function Workers() {
     }
   };
 
+  // =========================================================================
+  // CORRECCIÓN: FUNCIÓN DE CREAR COLABORADOR (SOLUCIONA EL DNI NO COMPLETADO)
+  // =========================================================================
   const handleCreateWorker = async (e) => {
     e.preventDefault();
     setCreating(true);
+
+    // Creamos un payload "a prueba de balas" con todas las variantes posibles
+    const payload = {
+      nombres: newWorker.nombres,
+      apellido_paterno: newWorker.apellido_paterno,
+      apellido_materno: newWorker.apellido_materno,
+      apellidos: `${newWorker.apellido_paterno} ${newWorker.apellido_materno}`.trim(), // Por si el backend pide un solo campo
+      dni: newWorker.dni,
+      DNI: newWorker.dni, // Por si el backend lo pide en mayúsculas
+      documento: newWorker.dni, // Por si el backend usa esta palabra
+      telefono: newWorker.telefono,
+      email: newWorker.email,
+      correo: newWorker.email, // Por si el backend usa "correo"
+      distrito: newWorker.distrito,
+      latitud: newWorker.latitud,
+      longitud: newWorker.longitud
+    };
+
+    console.log("🚀 DATOS QUE SE ESTÁN ENVIANDO AL BACKEND:", payload);
+
     try {
-      await radarApi.post('/api/asesores', {
-        ...newWorker,
-        correo: newWorker.email
-      });
+      await radarApi.post('/api/asesores', payload);
       setShowModal(false);
       setNewWorker({ nombres: '', apellido_paterno: '', apellido_materno: '', dni: '', telefono: '', email: '', distrito: '', latitud: '', longitud: '' });
       showToast("Asesor registrado exitosamente", 'success');
-      // Ejecutar fetch de manera asíncrona pero sin cascading render
+      
       const res = await radarApi.get('/api/asesores');
       setWorkers(res.data.data || []);
-    } catch (e) { showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); }
-    finally { setCreating(false); }
+    } catch (e) { 
+      console.error("❌ ERROR DEL BACKEND:", e.response?.data);
+      showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); 
+    } finally { 
+      setCreating(false); 
+    }
   };
 
+  // =========================================================================
+  // CORRECCIÓN: FUNCIÓN DE EDITAR COLABORADOR
+  // =========================================================================
   const handleEditWorker = async (e) => {
     e.preventDefault();
     setCreating(true);
+
+    const payload = {
+      ...editingWorker,
+      DNI: editingWorker.dni,
+      documento: editingWorker.dni,
+      apellidos: `${editingWorker.apellido_paterno || ''} ${editingWorker.apellido_materno || ''}`.trim(),
+      correo: editingWorker.email
+    };
+
+    console.log("🚀 EDITANDO ASESOR CON:", payload);
+
     try {
-      await radarApi.patch(`/api/asesores/${editingWorker.id}`, {
-        ...editingWorker,
-        correo: editingWorker.email
-      });
+      await radarApi.patch(`/api/asesores/${editingWorker.id}`, payload);
       setEditingWorker(null);
       showToast("Asesor actualizado exitosamente", 'success');
-      // Ejecutar fetch de manera asíncrona
+      
       const res = await radarApi.get('/api/asesores');
       setWorkers(res.data.data || []);
-    } catch (e) { showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); }
-    finally { setCreating(false); }
+    } catch (e) { 
+      console.error("❌ ERROR DEL BACKEND:", e.response?.data);
+      showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); 
+    } finally { 
+      setCreating(false); 
+    }
   };
 
   const getWorkerStatusColor = (w) => {
@@ -386,7 +393,7 @@ export default function Workers() {
         </div>
       </div>
 
-      {/* MODAL EDITAR / CREAR (Same as before but cleaned up) */}
+      {/* MODAL EDITAR */}
       {editingWorker && (
         <div className="modal-overlay" style={{ backdropFilter: 'blur(5px)' }}>
           <div className="modal" style={{ maxWidth: '600px', width: '95vw', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: '24px', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
@@ -453,6 +460,7 @@ export default function Workers() {
         </div>
       )}
 
+      {/* MODAL CREAR */}
       {showModal && createPortal(
         <div className="modal-overlay worker-create-overlay">
           <div className="modal worker-create-modal">
