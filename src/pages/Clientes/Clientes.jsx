@@ -24,6 +24,7 @@ const escapeHtml = value => String(value ?? '—')
   .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 
 const CLIENT_TEMPLATE_FILE_NAME = 'plantilla_clientes_radar360.xlsx';
+const CLIENT_REQUIRED_HEADERS = ['tipo_documento *', 'numero_documento *', 'deuda_cliente *'];
 
 function EstadoBadge({ estado }) {
   const cfg = ESTADO_COLORS[estado] || { bg: 'var(--c-surface-2)', text: 'var(--c-muted)', label: estado };
@@ -464,7 +465,7 @@ export default function Clientes() {
               <div className="client-import-columns" aria-label="Columnas incluidas">
                 <strong>Cabeceras incluidas</strong>
                 <div>
-                  {['tipo_documento *', 'numero_documento *'].map(column => <span key={column}>{column}</span>)}
+                  {CLIENT_REQUIRED_HEADERS.map(column => <span key={column}>{column}</span>)}
                 </div>
                 <small>* Campos obligatorios. No cambies el nombre de las cabeceras.</small>
               </div>
