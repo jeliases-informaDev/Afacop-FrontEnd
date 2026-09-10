@@ -546,7 +546,7 @@ export default function Admision() {
             }}
           >
             <div className="sbs-modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--c-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--c-surface-2)', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--c-text)', margin: 0 }}>Consulta de Calificación Crediticia (SBS)</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--c-text)', margin: 0 }}>Consulta de calificación de personas</h2>
               <button 
                 onClick={() => setShowEvalModal(false)} 
                 style={{ 
