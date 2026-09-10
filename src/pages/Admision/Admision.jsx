@@ -739,11 +739,11 @@ export default function Admision() {
       ), document.body)}
 
       {/* Modal de Detalle del Cliente */}
-      {selectedClientInfo && (
+      {selectedClientInfo && createPortal(
         <div 
           className="admission-detail-overlay"
           style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
             display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px'
           }}
           onClick={() => setSelectedClientInfo(null)}
@@ -843,7 +843,7 @@ export default function Admision() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
