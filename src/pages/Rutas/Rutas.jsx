@@ -117,7 +117,7 @@ const ESTADO_CONFIG = {
   PROGRAMADA: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Programada' },
   EN_PROCESO: { color: '#2563eb', bg: 'rgba(37,99,235,0.12)', label: 'En proceso' },
   FINALIZADA: { color: '#10b981', bg: 'rgba(16,185,129,0.12)', label: 'Finalizada' },
-  CANCELADA:  { color: '#ef4444', bg: 'rgba(239,68,68,0.1)',  label: 'Cancelada' },
+  CANCELADA:  { color: '#1f2937', bg: 'rgba(31,41,55,0.1)',  label: 'Cancelada' },
 };
 
 const CLIENTE_ESTADO_CONFIG = {

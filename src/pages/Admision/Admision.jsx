@@ -159,8 +159,7 @@ export default function Admision() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const { radarApi, user } = useContext(AuthContext);
-  const showManualEvaluationButton = user?.rol !== 'GERENTE';
+  const { radarApi } = useContext(AuthContext);
   const [evaluaciones, setEvaluaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -281,19 +280,17 @@ export default function Admision() {
           <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--c-text)' }}>Evaluaciones y Admisión</h1>
           <p style={{ color: 'var(--c-muted)', fontSize: '14px', marginTop: '4px' }}>Visualiza las evaluaciones de campo y realiza consultas manuales en la SBS.</p>
         </div>
-        {showManualEvaluationButton && (
-          <button className="admission-manual-button"
-            onClick={() => { setShowEvalModal(true); setEvalResult(null); setDniSearch(''); }}
-            style={{
-              backgroundColor: 'var(--c-primary)', color: 'white', border: 'none', padding: '10px 20px', 
-              borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
-              boxShadow: '0 4px 10px rgba(66, 99, 235, 0.3)'
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14m-7-7h14"/></svg>
-            Evaluar Manualmente
-          </button>
-        )}
+        <button className="admission-manual-button"
+          onClick={() => { setShowEvalModal(true); setEvalResult(null); setDniSearch(''); }}
+          style={{
+            backgroundColor: 'var(--c-primary)', color: 'white', border: 'none', padding: '10px 20px', 
+            borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
+            boxShadow: '0 4px 10px rgba(66, 99, 235, 0.3)'
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14m-7-7h14"/></svg>
+          Evaluar Manualmente
+        </button>
       </div>
 
       <div className="admission-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '20px' }}>
@@ -596,7 +593,7 @@ export default function Admision() {
                     opacity: (loadingEval || dniSearch.length < 8) ? 0.6 : 1
                   }}
                 >
-                  {loadingEval ? 'Consultando...' : 'Buscar en SBS'}
+                  {loadingEval ? 'Consultando...' : 'Validar'}
                 </button>
               </div>
 

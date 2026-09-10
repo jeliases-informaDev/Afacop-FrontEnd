@@ -7,7 +7,6 @@ import { ChevronRight, MapPin, FileText, Calendar, User as UserIcon, X, Search a
 import { getAvatarUrl } from '../../shared/utils/avatar.js';
 
 function parseGoogleMapsLink(url) {
-  // Formatos: @lat,lng | ?q=lat,lng | /place/.../@lat,lng | maps?q=lat,lng | ll=lat,lng
   const patterns = [
     /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
     /@(-?\d+\.\d+),(-?\d+\.\d+)/,
@@ -22,55 +21,27 @@ function parseGoogleMapsLink(url) {
   return null;
 }
 
-function LocationInput({ latitud, longitud, onChange, radarApi, onDistrictChange }) {
-  const [mode, setMode] = useState('link'); // 'link' | 'address'
+function LocationInput({ latitud, longitud, onChange, onDistrictChange }) {
+  const [mode, setMode] = useState('link');
   const [linkValue, setLinkValue] = useState('');
   const [addressValue, setAddressValue] = useState('');
   const [parsed, setParsed] = useState(null);
   const [error, setError] = useState('');
-  const [resolvingDistrict, setResolvingDistrict] = useState(false);
-
-  const resolveDistrict = async (lat, lng) => {
-    setResolvingDistrict(true);
-    try {
-      const response = await radarApi.post('/api/asesores/geocodificar', { latitud: lat, longitud: lng });
-      if (response.data?.data?.distrito) onDistrictChange(response.data.data.distrito);
-    } catch (lookupError) {
-      console.error('No se pudo obtener el distrito:', lookupError);
-      setError('Se obtuvieron las coordenadas, pero no fue posible identificar el distrito. Puedes escribirlo manualmente.');
-    } finally {
-      setResolvingDistrict(false);
-    }
-  };
 
   const handleLinkChange = (val) => {
     setLinkValue(val);
     setError('');
     if (!val.trim()) { onChange('', ''); setParsed(null); return; }
+    
     const result = parseGoogleMapsLink(val);
     if (result) {
       setParsed(result);
       onChange(result.lat, result.lng);
       setError('');
-      resolveDistrict(result.lat, result.lng);
-    } else if (/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(?:www\.)?google\.com|maps\.google\.com)\//i.test(val.trim())) {
-      setResolvingDistrict(true);
-      radarApi.post('/api/asesores/geocodificar', { url: val.trim() }).then(response => {
-        const location = response.data?.data;
-        if (!location?.latitud || !location?.longitud) throw new Error('Ubicación no reconocida');
-        setParsed({ lat: location.latitud, lng: location.longitud });
-        onChange(location.latitud, location.longitud);
-        if (location.distrito) onDistrictChange(location.distrito);
-        setError('');
-      }).catch(() => {
-        setParsed(null);
-        onChange('', '');
-        setError('No se pudo resolver el enlace compartido. Verifica que sea un enlace público de Google Maps.');
-      }).finally(() => setResolvingDistrict(false));
     } else if (val.length > 10) {
       setParsed(null);
       onChange('', '');
-      setError('No se pudo extraer coordenadas. Pega el enlace completo de Google Maps.');
+      setError('No se pudo extraer coordenadas. Asegúrate de copiar el enlace completo desde Google Maps.');
     }
   };
 
@@ -78,58 +49,30 @@ function LocationInput({ latitud, longitud, onChange, radarApi, onDistrictChange
     flex: 1, padding: '7px', fontSize: '12px', fontWeight: '700', border: 'none', cursor: 'pointer',
     background: active ? 'var(--c-primary)' : 'var(--c-surface-2)',
     color: active ? '#fff' : 'var(--c-muted)',
-    borderRadius: active ? '6px' : '6px', transition: 'all 0.15s',
+    borderRadius: '6px', transition: 'all 0.15s',
   });
 
   return (
     <div>
-      {/* Selector de modo */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', background: 'var(--c-surface-2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--c-border)' }}>
-        <button type="button" style={tabStyle(mode === 'link')} onClick={() => setMode('link')}>
-          🔗 Enlace de Google Maps
-        </button>
-        <button type="button" style={tabStyle(mode === 'address')} onClick={() => setMode('address')}>
-          📍 Dirección exacta
-        </button>
+        <button type="button" style={tabStyle(mode === 'link')} onClick={() => setMode('link')}>🔗 Enlace de Google Maps</button>
+        <button type="button" style={tabStyle(mode === 'address')} onClick={() => setMode('address')}>📍 Dirección manual</button>
       </div>
 
       {mode === 'link' ? (
         <div>
-          <input
-            className="form-input"
-            style={{ background: 'var(--c-surface)', borderColor: error ? '#ef4444' : undefined }}
-            placeholder="Pega el enlace de Google Maps o 'Compartir ubicación'..."
-            value={linkValue}
-            onChange={e => handleLinkChange(e.target.value)}
-          />
+          <input className="form-input" style={{ background: 'var(--c-surface)', borderColor: error ? '#ef4444' : undefined }} placeholder="Pega el enlace de Google Maps aquí..." value={linkValue} onChange={e => handleLinkChange(e.target.value)} />
           {error && <p style={{ fontSize: '11px', color: '#ef4444', marginTop: '5px' }}>{error}</p>}
-          {resolvingDistrict && <p style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '5px' }}>Identificando distrito...</p>}
           {parsed && (
             <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>
-                ✓ Lat: {parsed.lat}
-              </div>
-              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>
-                ✓ Lng: {parsed.lng}
-              </div>
+              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>✓ Lat: {parsed.lat}</div>
+              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>✓ Lng: {parsed.lng}</div>
             </div>
           )}
-          <p style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '6px' }}>
-            En Google Maps: toca el punto → "Compartir" → copia el enlace.
-          </p>
         </div>
       ) : (
         <div>
-          <input
-            className="form-input"
-            style={{ background: 'var(--c-surface)' }}
-            placeholder="Ej: Av. Javier Prado Este 4200, Lima, Perú"
-            value={addressValue}
-            onChange={e => { setAddressValue(e.target.value); onChange('', ''); }}
-          />
-          <p style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '6px' }}>
-            Escribe la dirección completa incluyendo distrito y ciudad.
-          </p>
+          <input className="form-input" style={{ background: 'var(--c-surface)' }} placeholder="Ej: Av. Universitaria 8080, Comas" value={addressValue} onChange={e => { setAddressValue(e.target.value); onChange('', ''); }} />
         </div>
       )}
     </div>
@@ -169,21 +112,16 @@ export default function Workers() {
 
   const [editingWorker, setEditingWorker] = useState(null);
   const [statusWorker, setStatusWorker] = useState(null);
-
   const fileInputRef = useRef(null);
 
-  const handleImportExcel = () => {
-    fileInputRef.current?.click();
-  };
+  const handleImportExcel = () => { fileInputRef.current?.click(); };
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const formData = new FormData();
     formData.append('file', file);
     setCreating(true);
-
     try {
       const res = await radarApi.post('/api/importaciones/asesores', formData);
       let job;
@@ -198,7 +136,6 @@ export default function Workers() {
       res.data.insertados = job.insertadas;
       res.data.errores = job.errores;
       showToast(`Importación completada:\n- Insertados: ${res.data.insertados}\n- Errores: ${res.data.errores}`, 'success');
-      // Refrescar listado
       const workersRes = await radarApi.get('/api/asesores');
       setWorkers(workersRes.data.data || []);
     } catch (err) {
@@ -229,36 +166,65 @@ export default function Workers() {
   const handleCreateWorker = async (e) => {
     e.preventDefault();
     setCreating(true);
+
+    const payload = {
+      nombres: newWorker.nombres,
+      apellido_paterno: newWorker.apellido_paterno,
+      apellido_materno: newWorker.apellido_materno,
+      apellidos: `${newWorker.apellido_paterno} ${newWorker.apellido_materno}`.trim(),
+      dni: newWorker.dni,
+      DNI: newWorker.dni,
+      documento: newWorker.dni,
+      telefono: newWorker.telefono,
+      email: newWorker.email,
+      correo: newWorker.email,
+      distrito: newWorker.distrito,
+      latitud: newWorker.latitud,
+      longitud: newWorker.longitud
+    };
+
+    console.log("🚀 ENVIANDO ASESOR:", payload);
+
     try {
-      await radarApi.post('/api/asesores', {
-        ...newWorker,
-        correo: newWorker.email
-      });
+      await radarApi.post('/api/asesores', payload);
       setShowModal(false);
       setNewWorker({ nombres: '', apellido_paterno: '', apellido_materno: '', dni: '', telefono: '', email: '', distrito: '', latitud: '', longitud: '' });
       showToast("Asesor registrado exitosamente", 'success');
-      // Ejecutar fetch de manera asíncrona pero sin cascading render
+      
       const res = await radarApi.get('/api/asesores');
       setWorkers(res.data.data || []);
-    } catch (e) { showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); }
-    finally { setCreating(false); }
+    } catch (e) { 
+      console.error("❌ ERROR:", e.response?.data);
+      showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); 
+    } finally { 
+      setCreating(false); 
+    }
   };
 
   const handleEditWorker = async (e) => {
     e.preventDefault();
     setCreating(true);
+
+    const payload = {
+      ...editingWorker,
+      DNI: editingWorker.dni,
+      documento: editingWorker.dni,
+      apellidos: `${editingWorker.apellido_paterno || ''} ${editingWorker.apellido_materno || ''}`.trim(),
+      correo: editingWorker.email
+    };
+
     try {
-      await radarApi.patch(`/api/asesores/${editingWorker.id}`, {
-        ...editingWorker,
-        correo: editingWorker.email
-      });
+      await radarApi.patch(`/api/asesores/${editingWorker.id}`, payload);
       setEditingWorker(null);
       showToast("Asesor actualizado exitosamente", 'success');
-      // Ejecutar fetch de manera asíncrona
+      
       const res = await radarApi.get('/api/asesores');
       setWorkers(res.data.data || []);
-    } catch (e) { showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); }
-    finally { setCreating(false); }
+    } catch (e) { 
+      showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); 
+    } finally { 
+      setCreating(false); 
+    }
   };
 
   const getWorkerStatusColor = (w) => {
@@ -279,8 +245,6 @@ export default function Workers() {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', transition: 'all 0.3s' }}>
-      
-      {/* MAIN TABLE */}
       <div>
         <div style={{ marginBottom: '24px' }}>
           <h1 className="text-2xl font-bold">Gestión de Asesores - {sedeActual?.nombre || 'General'}</h1>
@@ -325,25 +289,10 @@ export default function Workers() {
                   <td colSpan="5">
                     <div className="table-empty-state">
                       <div className="table-empty-icon"><UserX size={26} strokeWidth={1.8} /></div>
-                      <strong>
-                        {searchTerm || filtroEstado !== 'TODOS'
-                          ? 'No encontramos colaboradores'
-                          : 'Aún no hay colaboradores registrados'}
-                      </strong>
-                      <p>
-                        {searchTerm || filtroEstado !== 'TODOS'
-                          ? 'Prueba modificando la búsqueda o limpiando el filtro seleccionado.'
-                          : 'Los colaboradores aparecerán aquí cuando sean registrados o importados.'}
-                      </p>
+                      <strong>{searchTerm || filtroEstado !== 'TODOS' ? 'No encontramos colaboradores' : 'Aún no hay colaboradores registrados'}</strong>
+                      <p>{searchTerm || filtroEstado !== 'TODOS' ? 'Prueba modificando la búsqueda o limpiando el filtro seleccionado.' : 'Los colaboradores aparecerán aquí cuando sean registrados o importados.'}</p>
                       {(searchTerm || filtroEstado !== 'TODOS') && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost table-empty-action"
-                          onClick={() => {
-                            setSearchTerm('');
-                            setFiltroEstado('TODOS');
-                          }}
-                        >
+                        <button type="button" className="btn btn-ghost table-empty-action" onClick={() => { setSearchTerm(''); setFiltroEstado('TODOS'); }}>
                           Limpiar filtros
                         </button>
                       )}
@@ -351,10 +300,7 @@ export default function Workers() {
                   </td>
                 </tr>
               ) : filteredWorkers.map(w => (
-                <tr key={w.id}
-                  onClick={() => handleSelectWorker(w)}
-                  style={{ cursor: 'pointer' }}
-                >
+                <tr key={w.id} onClick={() => handleSelectWorker(w)} style={{ cursor: 'pointer' }}>
                   <td data-label="Asesor" style={{ '--worker-status-color': getWorkerStatusColor(w), borderLeft: `6px solid ${getWorkerStatusColor(w)}`, paddingLeft: '16px' }}>
                     <div className="flex items-center gap-3">
                       <div className="avatar-small" style={{ width: '48px', height: '48px' }}>
@@ -369,9 +315,7 @@ export default function Workers() {
                   <td data-label="DNI / Teléfono">{w.dni} <br/> <small className="text-muted">{w.telefono}</small></td>
                   <td data-label="Distrito base">{w.distrito || '--'}</td>
                   <td data-label="Estado">
-                    <span className={`badge ${w.estado === 'ACTIVO' ? 'badge-activo' : 'badge-inactivo'}`}>
-                      {w.estado}
-                    </span>
+                    <span className={`badge ${w.estado === 'ACTIVO' ? 'badge-activo' : 'badge-inactivo'}`}>{w.estado}</span>
                   </td>
                   <td data-label="Acciones" className="table-col-final" style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                     <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); setEditingWorker(w); }}>Editar</button>
@@ -386,19 +330,13 @@ export default function Workers() {
         </div>
       </div>
 
-      {/* MODAL EDITAR / CREAR (Same as before but cleaned up) */}
+      {/* MODAL EDITAR */}
       {editingWorker && (
         <div className="modal-overlay" style={{ backdropFilter: 'blur(5px)' }}>
           <div className="modal" style={{ maxWidth: '600px', width: '95vw', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: '24px', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             <div className="p-10 flex justify-between items-center" style={{ padding: '32px 40px 20px', borderBottom: '1px solid var(--c-border)', flexShrink: 0 }}>
-              <div>
-                <h2 style={{ fontSize: '24px', fontWeight: '900', color: 'var(--c-text)', margin: 0 }}>Editar asesor</h2>
-              </div>
-              <button 
-                className="btn-icon" 
-                style={{ background: 'var(--c-surface-2)', borderRadius: '50%', padding: '8px' }}
-                onClick={() => setEditingWorker(null)}
-              ><X size={20} /></button>
+              <h2 style={{ fontSize: '24px', fontWeight: '900', color: 'var(--c-text)', margin: 0 }}>Editar asesor</h2>
+              <button className="btn-icon" style={{ background: 'var(--c-surface-2)', borderRadius: '50%', padding: '8px' }} onClick={() => setEditingWorker(null)}><X size={20} /></button>
             </div>
             <form onSubmit={handleEditWorker} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
               <div className="modal-body" style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto', flex: 1 }}>
@@ -453,6 +391,7 @@ export default function Workers() {
         </div>
       )}
 
+      {/* MODAL CREAR */}
       {showModal && createPortal(
         <div className="modal-overlay worker-create-overlay">
           <div className="modal worker-create-modal">
@@ -495,7 +434,6 @@ export default function Workers() {
                   <LocationInput
                     latitud={newWorker.latitud}
                     longitud={newWorker.longitud}
-                    radarApi={radarApi}
                     onChange={(lat, lng) => setNewWorker(actual => ({...actual, latitud: lat, longitud: lng}))}
                     onDistrictChange={(distrito) => setNewWorker(actual => ({...actual, distrito}))}
                   />
