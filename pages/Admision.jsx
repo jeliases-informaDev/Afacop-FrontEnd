@@ -365,7 +365,7 @@ export default function Admision() {
                     opacity: (loadingEval || dniSearch.length < 8) ? 0.6 : 1
                   }}
                 >
-                  {loadingEval ? 'Consultando...' : 'Buscar en SBS'}
+                  {loadingEval ? 'Consultando...' : 'Validar'}
                 </button>
               </div>
 

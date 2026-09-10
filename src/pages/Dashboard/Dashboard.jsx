@@ -11,7 +11,6 @@ import {
 import { getAvatarUrl } from '../../shared/utils/avatar.js';
 import CustomDatePicker from '../../shared/ui/CustomDatePicker';
 
-
 /* ── Counter ─────────────────────────────────────────────────── */
 function AnimatedNumber({ value }) {
   // No animar el KPI: un valor intermedio puede confundirse con el total real.
@@ -40,7 +39,7 @@ const getActivityLabel = value => activityLabels[value] || String(value || 'Gest
 
 /* ════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-  const { radarApi, sedeActual, user } = useContext(AuthContext);
+  const { radarApi, sedeActual } = useContext(AuthContext);
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [actividad, setActividad] = useState([]);
@@ -50,8 +49,6 @@ export default function Dashboard() {
   const [exportEnd, setExportEnd] = useState('');
   const effectiveness = Math.max(0, Math.min(100, Number(stats?.efectividadCobranza || 0)));
   const recoveredAmount = Number(stats?.montoRecuperado || 0);
-  const showRoutesButton = user?.rol !== 'GERENTE';
-  const showExportButton = user?.rol !== 'GERENTE';
 
   const fetchData = useCallback(async () => {
     try {
@@ -130,7 +127,9 @@ export default function Dashboard() {
     if (exportEnd) params.fecha_fin = exportEnd;
     try {
       const response = await radarApi.get('/api/dashboard/export_actividad', { params, responseType: 'blob' });
-      const url = URL.createObjectURL(response.data);
+      const csv = await response.data.text();
+      const file = new Blob(['\uFEFFsep=,\r\n', csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(file);
       const link = document.createElement('a');
       link.href = url;
       link.download = `actividad-${new Date().toISOString().slice(0, 10)}.csv`;
@@ -168,15 +167,7 @@ export default function Dashboard() {
       Icon: Wallet, bgColor: 'linear-gradient(135deg, #059669, #34D399)', shadowColor: '#34D399',
     },
     { label: 'Asesores en Campo', value: stats.workersActivos, sub: 'Operativos ahora', Icon: Activity, bgColor: 'linear-gradient(135deg, #D97706, #FACC15)', shadowColor: '#FACC15' },
-    {
-      label: 'Rutas del Día',
-      value: stats.rutasHoy,
-      sub: 'Programadas y en curso',
-      Icon: MapIcon,
-      bgColor: 'linear-gradient(135deg, #DC2626, #F87171)',
-      shadowColor: '#F87171',
-      onClick: showRoutesButton ? () => navigate('/rutas') : undefined
-    },
+    { label: 'Rutas del Día', value: stats.rutasHoy, sub: 'Programadas y en curso', Icon: MapIcon, bgColor: 'linear-gradient(135deg, #DC2626, #F87171)', shadowColor: '#F87171', onClick: () => navigate('/rutas') },
   ];
 
   return (
@@ -198,11 +189,9 @@ export default function Dashboard() {
           <button type="button" style={{ ...S.btnPrimary, flex: 1, justifyContent: 'center' }} onClick={() => navigate('/admision')}>
             <TrendingUp size={16} /> Nueva Evaluación
           </button>
-          {showRoutesButton && (
-            <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/rutas')}>
-              <Route size={16} /> Rutas del Día
-            </button>
-          )}
+          <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/rutas')}>
+            <Route size={16} /> Rutas del Día
+          </button>
           <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/map')}>
             <MapPin size={16} /> Ver en Mapa
           </button>
@@ -254,17 +243,15 @@ export default function Dashboard() {
               <h3 style={S.cardTitle}>Actividad reciente</h3>
               <p style={S.cardSub}>Últimas gestiones registradas en campo</p>
             </div>
-            {showExportButton && (
-              <button
-                className="btn-outline"
-                onClick={() => setShowExportModal(true)}
-                disabled={actividad.length === 0}
-                title={actividad.length === 0 ? 'La exportación se habilitará cuando exista actividad registrada' : 'Exportar historial de actividad'}
-                style={actividad.length === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-              >
-                <Download size={14} /> Exportar
-              </button>
-            )}
+            <button
+              className="btn-outline"
+              onClick={() => setShowExportModal(true)}
+              disabled={actividad.length === 0}
+              title={actividad.length === 0 ? 'La exportación se habilitará cuando exista actividad registrada' : 'Exportar historial de actividad'}
+              style={actividad.length === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+            >
+              <Download size={14} /> Exportar
+            </button>
           </div>
 
           {(() => {
@@ -286,9 +273,9 @@ export default function Dashboard() {
                     else if (['PAGO', 'GESTIONADO', 'VISITADO', 'RUTA_FINALIZADA'].includes(activityStatus)) flagColor = '#28A745';
                     else if (activityStatus === 'REPROGRAMADO' || activityStatus === 'REPROGRAMARA') flagColor = '#F59E0B';
                     else if (activityStatus === 'RUTA_INICIADA') flagColor = '#2563EB';
-                    else if (activityStatus === 'RUTA_CANCELADA') flagColor = '#DC3545';
+                    else if (activityStatus === 'RUTA_CANCELADA') flagColor = '#1F2937';
                     return (
-                      <div key={a.id || idx} style={{ ...S.actItem, borderBottom: '1px solid #E5E7EB', paddingBottom: '12px', marginBottom: '12px', position: 'relative' }}>
+                      <div key={a.id || idx} style={{ ...S.actItem, gap: 10, borderBottom: '1px solid #E5E7EB', padding: '8px 0', marginBottom: '8px', position: 'relative' }}>
                         <div style={S.actAvatar}>
                           <img src={getAvatarUrl(a.worker_nombre, a.worker_id)} alt={a.worker_nombre}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
@@ -309,7 +296,20 @@ export default function Dashboard() {
                     );
                   })}
                 </div>
-
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', borderTop: '1px solid #E5E7EB', paddingTop: '14px', marginTop: '2px' }} aria-label="Leyenda de actividad">
+                  {[
+                    ['Ruta iniciada', '#2563EB'],
+                    ['Gestión completada', '#28A745'],
+                    ['Reprogramada', '#F59E0B'],
+                    ['Cancelada', '#1F2937'],
+                    ['No encontrada', '#EF4444'],
+                  ].map(([label, color]) => (
+                    <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#6C757D', fontSize: '10px', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      <span style={{ width: '9px', height: '9px', borderRadius: '2px', background: color }} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
               </>
             );
           })()}
@@ -612,8 +612,8 @@ const S = {
     borderBottom: '1px solid #F3F4F6',
   },
   actAvatar: {
-    width: 38,
-    height: 38,
+    width: 34,
+    height: 34,
     borderRadius: '50%',
     flexShrink: 0,
     overflow: 'hidden',

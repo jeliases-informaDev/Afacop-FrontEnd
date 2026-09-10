@@ -148,7 +148,7 @@ export default function WorkerDetail() {
       case 'GESTIONADO': return { color: '#2563eb', label: 'GESTIÓN REGISTRADA', icon: '' };
       case 'RUTA_INICIADA': return { color: '#10b981', label: 'RUTA INICIADA', icon: '' };
       case 'RUTA_FINALIZADA': return { color: '#2563eb', label: 'RUTA FINALIZADA', icon: '' };
-      case 'RUTA_CANCELADA': return { color: '#ef4444', label: 'RUTA CANCELADA', icon: '' };
+      case 'RUTA_CANCELADA': return { color: '#1f2937', label: 'RUTA CANCELADA', icon: '' };
       default: return { color: '#94a3b8', label: accion, icon: '' };
     }
   };
