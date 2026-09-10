@@ -42,9 +42,12 @@ export const AuthProvider = ({ children }) => {
   const API_BASE_URL = apiData.BASE_URL;
 
   // 2. Instancia de API Radar con Interceptor (SOLUCIÓN ERROR 401)
+// 2. Instancia de API Radar con Interceptor corregida
   const radarApi = React.useMemo(() => {
+    const isProd = window.location.hostname !== 'localhost' && !window.location.hostname.includes('192.168');
     const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const RADAR_BASE_URL = import.meta.env.VITE_RADAR_API_URL || `http://${API_HOST}:4001`;
+    const PROD_URL = import.meta.env.VITE_API_URL || 'https://afacop-backend.onrender.com';
+    const RADAR_BASE_URL = import.meta.env.VITE_RADAR_API_URL || import.meta.env.VITE_API_URL || (isProd ? PROD_URL : `http://${API_HOST}:4001`);
 
     const instance = axios.create({ baseURL: RADAR_BASE_URL });
 
