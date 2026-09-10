@@ -252,9 +252,9 @@ export default function Clientes() {
       AppAlert.error(
         'Error al importar clientes',
         err.response?.data?.error ||
-          err.response?.data?.message ||
-          err.message ||
-          'Error desconocido'
+        err.response?.data?.message ||
+        err.message ||
+        'Error desconocido'
       );
     } finally {
       setImportingClients(false);
@@ -341,6 +341,8 @@ export default function Clientes() {
       <div className="filter-bar clients-secondary-filters" style={{ flexWrap: 'wrap', gap: '32px' }}>
         <select name="estado" className="form-input professional-select" style={{ width: '230px', paddingRight: '42px' }} value={filters.estado} onChange={handleFilterChange}>
           <option value="">Todas las gestiones</option>
+
+          <option value="SIN_GESTION">Sin gestión</option>
           <option value="LIBRE">Libre</option>
           <option value="EN_VISITA">Asignado</option>
           <option value="VISITADO_PAGO">Gestionado</option>
@@ -367,7 +369,7 @@ export default function Clientes() {
         <table className="clients-table">
           <thead>
             <tr>
-              <th>Cliente</th><th>DNI / Teléfono</th><th>Dirección / Distrito</th>
+              <th>Cliente</th><th>DNI</th><th>Teléfono</th><th>Dirección / Distrito</th>
               <th>Deuda</th><th>Estado</th><th>Última Gestión</th>
             </tr>
           </thead>
@@ -411,7 +413,10 @@ export default function Clientes() {
                 <td data-label="Cliente">
                   <div className="font-bold">{c.nombres} {c.apellidos}</div>
                 </td>
-                <td data-label="DNI / Teléfono"><div>{c.dni || '—'}</div><div className="text-sm text-muted">{c.telefono || 'Sin teléfono'}</div></td>
+                <td data-label="DNI"><div className="text-sm text-muted">{c.dni || 'Sin DNI'}</div></td>
+
+                <td data-label="Teléfono"><div className="text-sm text-muted">{c.telefono || 'Sin teléfono'}</div></td>
+
                 <td data-label="Dirección / Distrito">
                   <div className="text-sm">{c.direccion}</div>
                   <span className="badge badge-activo" style={{ fontSize: '10px' }}>{c.distrito}</span>
