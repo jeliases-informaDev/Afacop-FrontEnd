@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import { useNotification } from '../../app/providers/NotificationContext.jsx';
-import { ChevronRight, MapPin, FileText, Calendar, User as UserIcon, X, Search as SearchIcon, WifiOff, UserX } from 'lucide-react';
+import { ChevronRight, ChevronDown, Check, MapPin, FileText, Calendar, User as UserIcon, X, Search as SearchIcon, WifiOff, UserX } from 'lucide-react';
 import { getAvatarUrl } from '../../shared/utils/avatar.js';
 
 function parseGoogleMapsLink(url) {
@@ -19,6 +19,59 @@ function parseGoogleMapsLink(url) {
     if (m) return { lat: m[1], lng: m[2] };
   }
   return null;
+}
+
+function WorkerFilterSelect({ value, onChange, options, ariaLabel }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+  const selectedOption = options.find(option => option.value === value) || options[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  return (
+    <div className="workers-custom-select" ref={containerRef}>
+      <button
+        type="button"
+        className={`workers-custom-select-trigger${isOpen ? ' is-open' : ''}`}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(open => !open)}
+      >
+        <span>{selectedOption.label}</span>
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+      {isOpen && (
+        <div className="workers-custom-select-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map(option => {
+            const selected = option.value === value;
+            return (
+              <button
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={`workers-custom-select-option${selected ? ' is-selected' : ''}`}
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                <span>{option.label}</span>
+                {selected && <Check size={16} aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function LocationInput({ latitud, longitud, onChange, onDistrictChange }) {
@@ -92,6 +145,7 @@ export default function Workers() {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('TODOS');
+  const [workerPage, setWorkerPage] = useState(1);
 
   useEffect(() => {
     const fetchWorkers = async () => {
@@ -183,8 +237,6 @@ export default function Workers() {
       longitud: newWorker.longitud
     };
 
-    console.log("🚀 ENVIANDO ASESOR:", payload);
-
     try {
       await radarApi.post('/api/asesores', payload);
       setShowModal(false);
@@ -243,24 +295,37 @@ export default function Workers() {
     return matchSearch && matchEstado;
   });
 
+  const workersPerPage = 5;
+  const workerTotalPages = Math.max(1, Math.ceil(filteredWorkers.length / workersPerPage));
+  const currentWorkerPage = Math.min(workerPage, workerTotalPages);
+  const paginatedWorkers = filteredWorkers.slice((currentWorkerPage - 1) * workersPerPage, currentWorkerPage * workersPerPage);
+  useEffect(() => { setWorkerPage(1); }, [searchTerm, filtroEstado, sedeActual?.id]);
+  useEffect(() => { setWorkerPage(page => Math.min(page, workerTotalPages)); }, [workerTotalPages]);
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px', transition: 'all 0.3s' }}>
       <div>
         <div style={{ marginBottom: '24px' }}>
-          <h1 className="text-2xl font-bold">Gestión de Asesores - {sedeActual?.nombre || 'General'}</h1>
-          <p className="text-muted">Visualiza el estado de tus asesores en campo y su productividad en esta sede.</p>
+          <h1 className="text-2xl font-bold" style={{ fontSize: '26px' }}>Gestión de Asesores - {sedeActual?.nombre || 'General'}</h1>
+          <p className="text-muted" style={{ fontSize: '14px' }}>Visualiza el estado de tus asesores en campo y su productividad en esta sede.</p>
         </div>
 
-        <div className="filter-bar" style={{ gap: '12px', flexWrap: 'wrap' }}>
+        <div className="workers-results-card">
+        <div className="filter-bar workers-filter-bar" style={{ gap: '12px', flexWrap: 'wrap' }}>
           <div className="professional-search" style={{ flex: 1, minWidth: '260px' }}>
             <SearchIcon size={16} color="var(--c-muted)"/>
             <input type="text" placeholder="Buscar por nombre, DNI, email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
-          <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} className="form-input professional-select" style={{ width: '200px', paddingRight: '42px' }}>
-            <option value="TODOS">Todos los estados</option>
-            <option value="ACTIVO">Activos</option>
-            <option value="INACTIVO">Inactivos</option>
-          </select>
+          <WorkerFilterSelect
+            value={filtroEstado}
+            onChange={setFiltroEstado}
+            ariaLabel="Filtrar por estado de asesor"
+            options={[
+              { value: 'TODOS', label: 'Todos los estados' },
+              { value: 'ACTIVO', label: 'Activos' },
+              { value: 'INACTIVO', label: 'Inactivos' }
+            ]}
+          />
           <div className="workers-toolbar-actions" style={{ display: 'flex', gap: '12px' }}>
             <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx" onChange={handleFileChange} />
             <button className="btn btn-ghost" style={{ border: '1px solid var(--c-border)' }} onClick={handleImportExcel} disabled={creating}>Importar Excel</button>
@@ -283,7 +348,20 @@ export default function Workers() {
             </thead>
             <tbody>
               {loading ? (
-                <tr className="workers-loading-row"><td colSpan="5" className="text-center"><div className="spinner"></div></td></tr>
+                <tr className="workers-loading-row">
+                  <td colSpan="5">
+                    <div className="clients-loading-state" role="status" aria-live="polite">
+                      <p>Cargando asesores…</p>
+                      <div className="clients-loading-skeleton" aria-hidden="true">
+                        {Array.from({ length: workersPerPage }, (_, row) => (
+                          <div className="clients-loading-placeholder" key={row}>
+                            <span /><span /><span /><span />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               ) : filteredWorkers.length === 0 ? (
                 <tr className="table-empty-row">
                   <td colSpan="5">
@@ -299,15 +377,15 @@ export default function Workers() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredWorkers.map(w => (
+              ) : paginatedWorkers.map(w => (
                 <tr key={w.id} onClick={() => handleSelectWorker(w)} style={{ cursor: 'pointer' }}>
-                  <td data-label="Asesor" style={{ '--worker-status-color': getWorkerStatusColor(w), borderLeft: `6px solid ${getWorkerStatusColor(w)}`, paddingLeft: '16px' }}>
+                  <td data-label="Asesor" >
                     <div className="flex items-center gap-3">
-                      <div className="avatar-small" style={{ width: '48px', height: '48px' }}>
+                      <div className="avatar-small" style={{ width: '36px', height: '36px' }}>
                         <img src={getAvatarUrl(w.nombres, w.id)} alt="avatar" />
                       </div>
                       <div>
-                        <div className="font-bold" style={{ fontSize: '15px' }}>{w.nombres} {w.apellidos}</div>
+                        <div className="font-bold" style={{ fontSize: '14px' }}>{w.nombres} {w.apellidos}</div>
                         <div className="text-sm text-muted">{w.email || 'Sin correo registrado'}</div>
                       </div>
                     </div>
@@ -327,6 +405,20 @@ export default function Workers() {
               ))}
             </tbody>
           </table>
+        </div>
+        {!loading && filteredWorkers.length > 0 && (
+          <nav className="evaluation-pagination" aria-label="Paginación de asesores">
+            <p className="evaluation-pagination-summary">Mostrando <strong>{(currentWorkerPage - 1) * workersPerPage + 1}–{Math.min(currentWorkerPage * workersPerPage, filteredWorkers.length)}</strong> de {filteredWorkers.length} asesores</p>
+            <div className="evaluation-pagination-controls">
+              <button type="button" disabled={currentWorkerPage === 1} aria-label="Página anterior" onClick={() => setWorkerPage(currentWorkerPage - 1)}>‹</button>
+              {Array.from({ length: Math.min(5, workerTotalPages) }, (_, index) => Math.max(1, Math.min(currentWorkerPage - 2, workerTotalPages - 4)) + index).map(page => (
+                <button type="button" key={page} aria-label={`Ir a la página ${page}`} aria-current={page === currentWorkerPage ? 'page' : undefined} onClick={() => setWorkerPage(page)}>{page}</button>
+              ))}
+              <button type="button" disabled={currentWorkerPage === workerTotalPages} aria-label="Página siguiente" onClick={() => setWorkerPage(currentWorkerPage + 1)}>›</button>
+            </div>
+            <p className="evaluation-pagination-position" aria-live="polite">Página {currentWorkerPage} de {workerTotalPages}</p>
+          </nav>
+        )}
         </div>
       </div>
 
@@ -393,7 +485,7 @@ export default function Workers() {
 
       {/* MODAL CREAR */}
       {showModal && createPortal(
-        <div className="modal-overlay worker-create-overlay">
+        <div className="modal-overlay worker-create-overlay" style={{ background: 'rgba(3, 7, 15, 0.6)', backdropFilter: 'none' }}>
           <div className="modal worker-create-modal">
             <div className="modal-header">
               <span className="modal-title">Registrar nuevo asesor</span>

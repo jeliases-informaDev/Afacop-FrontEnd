@@ -26,6 +26,56 @@ const escapeHtml = value => String(value ?? '—')
 const CLIENT_TEMPLATE_FILE_NAME = 'plantilla_clientes_radar360.xlsx';
 const CLIENT_REQUIRED_HEADERS = ['tipo_documento *', 'numero_documento *', 'deuda_cliente *'];
 
+function ClientFilterSelect({ value, onChange, options, ariaLabel }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+  const selectedOption = options.find(option => option.value === value) || options[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  return (
+    <div className="clients-custom-select" ref={containerRef}>
+      <button
+        type="button"
+        className={`clients-custom-select-trigger${isOpen ? ' is-open' : ''}`}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(open => !open)}
+      >
+        <span>{selectedOption.label}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      {isOpen && (
+        <div className="clients-custom-select-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map(option => (
+            <button
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              className={`clients-custom-select-option${option.value === value ? ' is-selected' : ''}`}
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+            >
+              <span>{option.label}</span>
+              {option.value === value && <span className="clients-custom-select-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EstadoBadge({ estado }) {
   const cfg = ESTADO_COLORS[estado] || { bg: 'var(--c-surface-2)', text: 'var(--c-muted)', label: estado };
   return (
@@ -311,139 +361,161 @@ export default function Clientes() {
   return (
     <div className="clients-page">
       <div style={{ marginBottom: '24px' }}>
-        <h1 className="text-2xl font-bold">Gestión de Clientes - {sedeActual?.nombre || 'General'}</h1>
-        <p className="text-muted">Administra tu cartera de clientes y visualiza sus deudas en esta sede.</p>
+        <h1 className="text-2xl font-bold" style={{ fontSize: '26px' }}>Gestión de Clientes - {sedeActual?.nombre || 'General'}</h1>
+        <p className="text-muted" style={{ fontSize: '14px' }}>Administra tu cartera de clientes y visualiza sus deudas en esta sede.</p>
       </div>
-      {/* FILTROS - FILA 1: Buscador, Fecha e Importar Excel */}
-      <div className="clients-primary-filters">
-        <div className="clients-search-date">
+
+      <div className="clients-results-card">
+        <div className="clients-filter-bar">
           <div className="professional-search clients-search-input">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
             <input type="text" name="search" placeholder="Buscar por nombre, apellidos o DNI..." value={filters.search} onChange={handleFilterChange} />
           </div>
-        </div>
 
-        <div className="clients-date-action">
-          <CustomDatePicker
-            name="fecha_pago"
-            className="form-input clients-date-input"
-            value={filters.fecha_pago}
-            onChange={handleFilterChange}
+          <div className="clients-date-action">
+            <CustomDatePicker
+              name="fecha_pago"
+              className="form-input clients-date-input"
+              value={filters.fecha_pago}
+              onChange={handleFilterChange}
+            />
+          </div>
+          <ClientFilterSelect
+            value={filters.estado}
+            onChange={value => handleFilterChange({ target: { name: 'estado', value } })}
+            ariaLabel="Filtrar por gestión"
+            options={[
+              { value: '', label: 'Todas las gestiones' },
+              { value: 'SIN_GESTION', label: 'Sin gestión' },
+              { value: 'LIBRE', label: 'Libre' },
+              { value: 'EN_VISITA', label: 'Asignado' },
+              { value: 'VISITADO_PAGO', label: 'Gestionado' },
+              { value: 'REPROGRAMADO', label: 'Reprogramado' },
+              { value: 'NO_ENCONTRADO', label: 'No encontrado' }
+            ]}
           />
+
+          <ClientFilterSelect
+            value={filters.distrito}
+            onChange={value => handleFilterChange({ target: { name: 'distrito', value } })}
+            ariaLabel="Filtrar por distrito"
+            options={[
+              { value: '', label: 'Todos los distritos' },
+              ...(sedeActual?.nombre?.toLowerCase().includes('arequipa')
+                ? ['AREQUIPA', 'CERRO COLORADO', 'CAYMA', 'YANAHUARA', 'JOSE LUIS BUSTAMANTE', 'PAUCARPATA', 'MIRAFLORES']
+                : ['LIMA', 'ATE', 'CALLAO', 'COMAS', 'CHORRILLOS', 'LOS OLIVOS', 'SAN JUAN DE LURIGANCHO', 'SAN MARTIN DE PORRES', 'VILLA EL SALVADOR']
+              ).map(d => ({ value: d, label: d.toLowerCase().replace(/\b\w/g, letra => letra.toUpperCase()) }))
+            ]}
+          />
+
+          <div className="clients-import-action">
+            <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx" onChange={handleFileChange} />
+            <button type="button" className="btn btn-primary clients-import-button" onClick={handleImportExcel}><Upload size={16} aria-hidden="true" /> Importar Excel</button>
+          </div>
         </div>
-        <div className="clients-import-action">
-          <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx" onChange={handleFileChange} />
-          <button className="btn btn-primary clients-import-button" onClick={handleImportExcel}>Importar Excel</button>
-        </div>
-      </div>
 
-      {/* FILTROS - FILA 2: Gestiones y Distritos (sin cambios) */}
-      <div className="filter-bar clients-secondary-filters" style={{ flexWrap: 'wrap', gap: '32px' }}>
-        <select name="estado" className="form-input professional-select" style={{ width: '230px', paddingRight: '42px' }} value={filters.estado} onChange={handleFilterChange}>
-          <option value="">Todas las gestiones</option>
-
-          <option value="SIN_GESTION">Sin gestión</option>
-          <option value="LIBRE">Libre</option>
-          <option value="EN_VISITA">Asignado</option>
-          <option value="VISITADO_PAGO">Gestionado</option>
-          <option value="REPROGRAMADO">Reprogramado</option>
-          <option value="NO_ENCONTRADO">No encontrado</option>
-        </select>
-
-        <select name="distrito" className="form-input professional-select" style={{ width: '230px', paddingRight: '42px' }} value={filters.distrito} onChange={handleFilterChange}>
-          <option value="">Todos los distritos</option>
-          {sedeActual?.nombre?.toLowerCase().includes('arequipa') ? (
-            ['AREQUIPA', 'CERRO COLORADO', 'CAYMA', 'YANAHUARA', 'JOSE LUIS BUSTAMANTE', 'PAUCARPATA', 'MIRAFLORES'].map(d => (
-              <option key={d} value={d}>{d.toLowerCase().replace(/\b\w/g, letra => letra.toUpperCase())}</option>
-            ))
-          ) : (
-            ['LIMA', 'ATE', 'CALLAO', 'COMAS', 'CHORRILLOS', 'LOS OLIVOS', 'SAN JUAN DE LURIGANCHO', 'SAN MARTIN DE PORRES', 'VILLA EL SALVADOR'].map(d => (
-              <option key={d} value={d}>{d.toLowerCase().replace(/\b\w/g, letra => letra.toUpperCase())}</option>
-            ))
-          )}
-        </select>
-      </div>
-
-      {/* TABLA */}
-      <div className="table-wrap clients-table-wrap">
-        <table className="clients-table">
-          <thead>
-            <tr>
-              <th>Cliente</th><th>DNI</th><th>Teléfono</th><th>Dirección / Distrito</th>
-              <th>Deuda</th><th>Estado</th><th>Última Gestión</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr className="clients-loading-row"><td colSpan="6" className="text-center"><div className="spinner"></div></td></tr>
-            ) : clients.length === 0 ? (
-              <tr className="clients-empty-row">
-                <td colSpan="6">
-                  <div className="clients-empty-state">
-                    <div className="clients-empty-icon"><UserX size={26} strokeWidth={1.8} /></div>
-                    <strong>{filters.search || filters.estado || filters.distrito ? 'No encontramos coincidencias' : 'Aún no hay clientes registrados'}</strong>
-                    <p>
-                      {filters.search || filters.estado || filters.distrito
-                        ? 'Prueba modificando la búsqueda o limpiando los filtros seleccionados.'
-                        : 'Los clientes aparecerán aquí cuando sean registrados o importados.'}
-                    </p>
-                    {(filters.search || filters.estado || filters.distrito) && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost clients-empty-action"
-                        onClick={() => {
-                          setFilters(prev => ({ ...prev, search: '', estado: '', distrito: '' }));
-                          setPagination(prev => ({ ...prev, page: 1 }));
-                        }}
-                      >
-                        Limpiar filtros
-                      </button>
-                    )}
-                  </div>
-                </td>
+        {/* TABLA */}
+        <div className="table-wrap clients-table-wrap">
+          <table className="clients-table">
+            <thead>
+              <tr>
+                <th>Cliente</th><th>DNI</th><th>Teléfono</th><th>Dirección / Distrito</th>
+                <th>Deuda</th><th>Estado</th><th>Última Gestión</th>
               </tr>
-            ) : clients.map((c, index) => (
-              <tr
-                key={c.id}
-                style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.04)'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                onClick={() => handleShowDetail(c)}
-              >
-                <td data-label="Cliente">
-                  <div className="font-bold">{c.nombres} {c.apellidos}</div>
-                </td>
-                <td data-label="DNI"><div className="text-sm text-muted">{c.dni || 'Sin DNI'}</div></td>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr className="clients-loading-row">
+                  <td colSpan="7">
+                    <div className="clients-loading-state" role="status" aria-live="polite">
+                      <p>Cargando clientes…</p>
+                      <div className="clients-loading-skeleton" aria-hidden="true">
+                        {Array.from({ length: 6 }, (_, row) => (
+                          <div className="clients-loading-placeholder" key={row}>
+                            <span /><span /><span /><span />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : clients.length === 0 ? (
+                <tr className="clients-empty-row">
+                  <td colSpan="6">
+                    <div className="clients-empty-state">
+                      <div className="clients-empty-icon"><UserX size={26} strokeWidth={1.8} /></div>
+                      <strong>{filters.search || filters.estado || filters.distrito ? 'No encontramos coincidencias' : 'Aún no hay clientes registrados'}</strong>
+                      <p>
+                        {filters.search || filters.estado || filters.distrito
+                          ? 'Prueba modificando la búsqueda o limpiando los filtros seleccionados.'
+                          : 'Los clientes aparecerán aquí cuando sean registrados o importados.'}
+                      </p>
+                      {(filters.search || filters.estado || filters.distrito) && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost clients-empty-action"
+                          onClick={() => {
+                            setFilters(prev => ({ ...prev, search: '', estado: '', distrito: '' }));
+                            setPagination(prev => ({ ...prev, page: 1 }));
+                          }}
+                        >
+                          Limpiar filtros
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ) : clients.map((c, index) => (
+                <tr
+                  key={c.id}
+                  style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  onClick={() => handleShowDetail(c)}
+                >
+                  <td data-label="Cliente">
+                    <div className="font-bold">{c.nombres} {c.apellidos}</div>
+                  </td>
+                  <td data-label="DNI"><div className="text-sm text-muted">{c.dni || 'Sin DNI'}</div></td>
 
-                <td data-label="Teléfono"><div className="text-sm text-muted">{c.telefono || 'Sin teléfono'}</div></td>
+                  <td data-label="Teléfono"><div className="text-sm text-muted">{c.telefono || 'Sin teléfono'}</div></td>
 
-                <td data-label="Dirección / Distrito">
-                  <div className="text-sm">{c.direccion}</div>
-                  <span className="badge badge-activo" style={{ fontSize: '10px' }}>{c.distrito}</span>
-                </td>
-                <td data-label="Deuda">
-                  <div className="font-bold" style={{ whiteSpace: 'nowrap' }}>S/ {parseFloat(c.deuda_total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                  <div className="text-xs text-danger" style={{ whiteSpace: 'nowrap', fontSize: '11px', marginTop: '2px' }}>{c.dias_retraso} días retraso</div>
-                </td>
-                <td data-label="Estado"><EstadoBadge estado={c.estado || 'LIBRE'} /></td>
-                <td data-label="Última gestión">{c.fecha_gestion ? new Date(c.fecha_gestion).toLocaleDateString('es-PE') : 'Sin gestión'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* PAGINACIÓN */}
-      {!loading && clients.length > 0 && pagination.totalPages > 1 && (
-        <div className="pagination clients-pagination">
-          <button className="btn btn-ghost" disabled={pagination.page === 1} onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}>Anterior</button>
-          <span className="text-sm">Página {pagination.page} de {pagination.totalPages}</span>
-          <button className="btn btn-ghost" disabled={pagination.page >= pagination.totalPages} onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}>Siguiente</button>
+                  <td data-label="Dirección / Distrito">
+                    <div className="text-sm">{c.direccion}</div>
+                    <span className="badge badge-activo" style={{ fontSize: '10px' }}>{c.distrito}</span>
+                  </td>
+                  <td data-label="Deuda">
+                    <div className="font-bold" style={{ whiteSpace: 'nowrap' }}>S/ {parseFloat(c.deuda_total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div className="text-xs text-danger" style={{ whiteSpace: 'nowrap', fontSize: '11px', marginTop: '2px' }}>{c.dias_retraso} días retraso</div>
+                  </td>
+                  <td data-label="Estado"><EstadoBadge estado={c.estado || 'LIBRE'} /></td>
+                  <td data-label="Última gestión">{c.fecha_gestion ? new Date(c.fecha_gestion).toLocaleDateString('es-PE') : 'Sin gestión'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* PAGINACIÓN */}
+        {!loading && clients.length > 0 && pagination.totalPages > 1 && (
+          <nav className="evaluation-pagination" aria-label="Paginación de clientes">
+            <p className="evaluation-pagination-summary">
+              Mostrando clientes <strong>{(pagination.page - 1) * pagination.limit + 1}–{(pagination.page - 1) * pagination.limit + clients.length}</strong>
+            </p>
+            <div className="evaluation-pagination-controls">
+              <button type="button" disabled={pagination.page === 1} onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))} aria-label="Página anterior">‹</button>
+              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, index) => Math.max(1, Math.min(pagination.page - 2, pagination.totalPages - 4)) + index).map(page => (
+                <button key={page} type="button" aria-label={`Ir a la página ${page}`} aria-current={page === pagination.page ? 'page' : undefined} onClick={() => setPagination(prev => ({ ...prev, page }))}>{page}</button>
+              ))}
+              <button type="button" disabled={pagination.page >= pagination.totalPages} onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))} aria-label="Página siguiente">›</button>
+            </div>
+            <p className="evaluation-pagination-position" aria-live="polite">Página {pagination.page} de {pagination.totalPages}</p>
+          </nav>
+        )}
+      </div>
 
       {showImportGuide && createPortal(
-        <div className="modal-overlay client-import-overlay" role="dialog" aria-modal="true" aria-labelledby="client-import-title">
+        <div className="modal-overlay client-import-overlay" style={{ background: 'rgba(3, 7, 15, 0.6)', backdropFilter: 'none' }} role="dialog" aria-modal="true" aria-labelledby="client-import-title">
           <div className="client-import-modal">
             <header className="client-import-header">
               <div className="client-import-heading-icon"><FileSpreadsheet size={24} /></div>
@@ -493,7 +565,7 @@ export default function Clientes() {
 
       {/* MODAL DETALLE PREMIUM */}
       {showModal && selectedClient && createPortal(
-        <div className="modal-overlay client-detail-overlay" style={{ backdropFilter: 'blur(5px)' }}>
+        <div className="modal-overlay client-detail-overlay" style={{ background: 'rgba(0, 0, 0, 0.65)', backdropFilter: 'none' }}>
           <div className="modal client-detail-modal" style={{ maxWidth: '1100px', width: '95vw', background: 'var(--c-bg)', border: '1px solid var(--c-border)', borderRadius: '24px', overflow: 'hidden' }}>
 
             {/* HEADER MODAL */}

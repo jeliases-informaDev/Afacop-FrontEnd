@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useContext } from 'react';
+import React, { useCallback, useEffect, useState, useContext, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -25,6 +25,56 @@ const GESTION_META = {
   NO_ENCONTRADO: { label: 'No encontrado', color: '#EF4444' },
   MIXTO: { label: 'Agrupación', color: '#37385B' },
 };
+
+function MapFilterSelect({ value, onChange, options, ariaLabel }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+  const selectedOption = options.find(option => option.value === value) || options[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  return (
+    <div className="map-custom-select clients-custom-select" ref={containerRef}>
+      <button
+        type="button"
+        className={`clients-custom-select-trigger${isOpen ? ' is-open' : ''}`}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(open => !open)}
+      >
+        <span>{selectedOption.label}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      {isOpen && (
+        <div className="clients-custom-select-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map(option => (
+            <button
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              className={`clients-custom-select-option${option.value === value ? ' is-selected' : ''}`}
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+            >
+              <span>{option.label}</span>
+              {option.value === value && <span className="clients-custom-select-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function MapViewport({ onChange }) {
   const map = useMap();
@@ -186,9 +236,9 @@ export default function MapPage() {
         .map-filters-input {
           background-color: var(--c-surface-2) !important;
           color: var(--c-text) !important;
-          border: 1px solid var(--c-border) !important;
+          border: 3px solid var(--c-border) !important;
           padding: 8px 12px !important;
-          border-radius: var(--radius) !important;
+          border-radius: 8px !important;
           font-size: 13px !important;
           font-weight: 600 !important;
           outline: none !important;
@@ -210,25 +260,26 @@ export default function MapPage() {
             <label className="map-filter-label">Filtros:</label>
 
             <CustomDatePicker
-              className="map-filters-input"
+              className="map-filters-input map-date-filter-input"
               value={fechaPago}
               onChange={(e) => setFechaPago(e.target.value)}
             />
           </div>
 
           <div className="map-filter-select">
-            <select
-              className="map-filters-input"
+            <MapFilterSelect
               value={tipoGestion}
-              onChange={(e) => setTipoGestion(e.target.value)}
-            >
-              <option value="TODOS">Todas las Gestiones</option>
-              <option value="LIBRE">LIBRE</option>
-              <option value="EN_VISITA">ASIGNADO</option>
-              <option value="GESTIONADO">GESTIONADO</option>
-              <option value="REPROGRAMADO">REPROGRAMADO</option>
-              <option value="NO_ENCONTRADO">NO ENCONTRADO</option>
-            </select>
+              onChange={setTipoGestion}
+              ariaLabel="Filtrar por gestión"
+              options={[
+                { value: 'TODOS', label: 'Todas las Gestiones' },
+                { value: 'LIBRE', label: 'LIBRE' },
+                { value: 'EN_VISITA', label: 'ASIGNADO' },
+                { value: 'GESTIONADO', label: 'GESTIONADO' },
+                { value: 'REPROGRAMADO', label: 'REPROGRAMADO' },
+                { value: 'NO_ENCONTRADO', label: 'NO ENCONTRADO' }
+              ]}
+            />
 
           </div>
         </div>

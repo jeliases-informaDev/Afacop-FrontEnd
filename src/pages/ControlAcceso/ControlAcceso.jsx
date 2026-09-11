@@ -1,9 +1,59 @@
-import React, { useState, useContext, useMemo, useEffect } from 'react';
+import React, { useState, useContext, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import { useNotification } from '../../app/providers/NotificationContext.jsx';
 import { ROLES_CONFIG, MODULOS, DEMO_USERS } from '../../app/providers/AuthContext.jsx';
 import { Shield, Users, Search, Plus, Edit2, Trash2, Check, X, Lock, Unlock, Key, AlertTriangle, ChevronRight, Save, RotateCcw } from 'lucide-react';
+
+function AccessFilterSelect({ value, onChange, options, ariaLabel }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+  const selectedOption = options.find(option => option.value === value) || options[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  return (
+    <div className="access-custom-select clients-custom-select" ref={containerRef} onKeyDown={event => { if (event.key === 'Escape') { setIsOpen(false); containerRef.current?.querySelector('button')?.focus(); } }}>
+      <button
+        type="button"
+        className={`clients-custom-select-trigger${isOpen ? ' is-open' : ''}`}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(open => !open)}
+      >
+        <span>{selectedOption.label}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      {isOpen && (
+        <div className="clients-custom-select-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map(option => (
+            <button
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              className={`clients-custom-select-option${option.value === value ? ' is-selected' : ''}`}
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+            >
+              <span>{option.label}</span>
+              {option.value === value && <span className="clients-custom-select-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const MODULOS_LIST = Object.values(MODULOS);
 
@@ -166,7 +216,7 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
   };
 
   return createPortal((
-    <div className="user-modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(11,34,161,0.15)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000, padding: 20 }}>
+    <div className="user-modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(3, 7, 15, 0.6)', backdropFilter: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000, padding: 20 }}>
       <div className="user-modal-card" style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E7EB', width: '100%', maxWidth: 540, boxShadow: '0 24px 64px rgba(0,0,0,0.12)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E5E7EB', background: '#F8FAFF', borderRadius: '16px 16px 0 0' }}>
           <div>
@@ -495,7 +545,7 @@ export default function ControlAcceso() {
           <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#212529', letterSpacing: '-0.5px' }}>Control de Acceso</h2>
           <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6C757D' }}>Gestión de usuarios, roles y permisos de módulos del sistema</p>
         </div>
-        <button onClick={() => setModal({ mode: 'create' })} style={S.btnPrimary}>
+        <button onClick={() => setModal({ mode: 'create' })} style={{ ...S.btnPrimary, height: 34, minHeight: 34, padding: '4px 12px', fontSize: 13, boxSizing: 'border-box' }}>
           <Plus size={15} /> Nuevo usuario
         </button>
       </div>
@@ -536,21 +586,24 @@ export default function ControlAcceso() {
       {tab === 'usuarios' && (
         <>
           {/* Filtros */}
-          <div className="access-filters" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div className="access-filters access-filter-bar" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: '1 1 0', minWidth: 0 }}>
               <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre, usuario o correo..."
+              <input className="access-filter-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre, usuario o correo..."
                 style={{ width: '100%', padding: '9px 12px 9px 36px', border: '1px solid #DEE2E6', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter, sans-serif', color: '#212529', outline: 'none', background: '#FFFFFF', boxSizing: 'border-box' }} />
             </div>
-            <select className="professional-select" value={filtroRol} onChange={e => setFiltroRol(e.target.value)} style={{ ...S.select, flex: '0 0 180px', width: '180px', paddingRight: '42px' }}>
-              <option value="TODOS">Todos los roles</option>
-              {Object.entries(currentRolesConfig).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-            </select>
-            <select className="professional-select" value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)} style={{ ...S.select, flex: '0 0 190px', width: '190px', paddingRight: '42px' }}>
-              <option value="TODOS">Todos los estados</option>
-              <option value="ACTIVO">Activos</option>
-              <option value="INACTIVO">Inactivos</option>
-            </select>
+            <AccessFilterSelect
+              value={filtroRol}
+              onChange={setFiltroRol}
+              ariaLabel="Filtrar por rol"
+              options={[{ value: 'TODOS', label: 'Todos los roles' }, ...Object.entries(currentRolesConfig).map(([value, role]) => ({ value, label: role.label }))]}
+            />
+            <AccessFilterSelect
+              value={filtroEstado}
+              onChange={setFiltroEstado}
+              ariaLabel="Filtrar por estado"
+              options={[{ value: 'TODOS', label: 'Todos los estados' }, { value: 'ACTIVO', label: 'Activos' }, { value: 'INACTIVO', label: 'Inactivos' }]}
+            />
             {(search || filtroRol !== 'TODOS' || filtroEstado !== 'TODOS') && (
               <button onClick={() => { setSearch(''); setFiltroRol('TODOS'); setFiltroEstado('TODOS'); }}
                 style={{ padding: '9px 14px', background: '#F3F4F6', border: 'none', borderRadius: '8px', fontSize: '12px', color: '#6C757D', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>

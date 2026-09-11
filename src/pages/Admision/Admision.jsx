@@ -1,9 +1,78 @@
-import React, { useState, useEffect, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useContext, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import { ClipboardX } from 'lucide-react';
 const FILAS_POR_PAGINA = 12;
+
+function AdmissionFilterSelect({ value, onChange, options, ariaLabel }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+  const selectedOption = options.find(option => option.value === value) || options[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Escape') setIsOpen(false);
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setIsOpen(open => !open);
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const currentIndex = options.findIndex(option => option.value === value);
+      const nextIndex = event.key === 'ArrowDown'
+        ? Math.min(options.length - 1, currentIndex + 1)
+        : Math.max(0, currentIndex - 1);
+      onChange(options[nextIndex].value);
+      setIsOpen(true);
+    }
+  };
+
+  return (
+    <div className="admission-custom-select" ref={containerRef}>
+      <button
+        type="button"
+        className={`admission-custom-select-trigger${isOpen ? ' is-open' : ''}`}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(open => !open)}
+        onKeyDown={handleKeyDown}
+      >
+        <span>{selectedOption.label}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9" /></svg>
+      </button>
+      {isOpen && (
+        <div className="admission-custom-select-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map(option => (
+            <button
+              type="button"
+              role="option"
+              aria-selected={option.value === value}
+              className={`admission-custom-select-option${option.value === value ? ' is-selected' : ''}`}
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+            >
+              <span>{option.label}</span>
+              {option.value === value && <span className="admission-custom-select-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const getEstadoStyle = (estado) => {
   if (estado === 'APTO') {
     return { bg: 'rgba(12, 166, 120, 0.15)', color: '#0CA678' };
@@ -391,31 +460,41 @@ export default function Admision() {
 
       <div className="admission-results-card" style={{ backgroundColor: 'var(--c-surface)', borderRadius: '12px', padding: '20px', border: '1px solid var(--c-border)' }}>
         {/* Barra de búsqueda y filtros */}
-        <div className="admission-filter-bar" style={{ display: 'flex', gap: '10px', marginBottom: '16px', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1 1 0', minWidth: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <div className="admission-filter-bar">
+          <div className="admission-filter-search" >
+            <svg className="admission-filter-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" value={admSearch} onChange={e => setAdmSearch(e.target.value)} placeholder="Buscar por nombre, DNI o asesor..."
-              style={{ width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--c-border)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter,sans-serif', color: 'var(--c-text)', outline: 'none', background: 'var(--c-surface-2)', boxSizing: 'border-box' }} />
+              className="admission-filter-input" />
           </div>
-          <select className="admission-filter-select professional-select" value={admFiltroEstado} onChange={e => setAdmFiltroEstado(e.target.value)}
-            style={{ flex: '0 0 200px', width: '200px', padding: '8px 42px 8px 12px', border: '1px solid var(--c-border)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter,sans-serif', color: 'var(--c-text)', backgroundColor: 'var(--c-surface-2)', cursor: 'pointer' }}>
-            <option value="TODOS">Todos los estados</option>
-            <option value="APTO">Apto</option>
-            <option value="PENDIENTE">Pendiente</option>
-            <option value="NO APTO">No Apto</option>
-          </select>
-          <select className="admission-filter-select professional-select" value={admFiltroProducto} onChange={e => setAdmFiltroProducto(e.target.value)}
-            style={{ flex: '0 0 220px', width: '220px', padding: '8px 42px 8px 12px', border: '1px solid var(--c-border)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter,sans-serif', color: 'var(--c-text)', backgroundColor: 'var(--c-surface-2)', cursor: 'pointer' }}>
-            <option value="TODOS">Todos los productos</option>
-            <option value="MYPE">Préstamo MYPE</option>
-            <option value="Vehicular">Préstamo Vehicular</option>
-            <option value="Personal">Préstamo Personal</option>
-          </select>
-          <span style={{ fontSize: '12px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>
+          <AdmissionFilterSelect
+            value={admFiltroEstado}
+            onChange={setAdmFiltroEstado}
+            ariaLabel="Filtrar por estado"
+            options={[
+              { value: 'TODOS', label: 'Todos los estados' },
+              { value: 'APTO', label: 'Apto' },
+              { value: 'PENDIENTE', label: 'Pendiente' },
+              { value: 'NO APTO', label: 'No Apto' }
+            ]}
+          />
+          <AdmissionFilterSelect
+            value={admFiltroProducto}
+            onChange={setAdmFiltroProducto}
+            ariaLabel="Filtrar por producto"
+            options={[
+              { value: 'TODOS', label: 'Todos los productos' },
+              { value: 'MYPE', label: 'Préstamo MYPE' },
+              { value: 'Vehicular', label: 'Préstamo Vehicular' },
+              { value: 'Personal', label: 'Préstamo Personal' }
+            ]}
+          />
+          <span className="admission-filter-count">
             {evaluacionesFiltradas.length} resultado{evaluacionesFiltradas.length !== 1 ? 's' : ''}
           </span>
         </div>
 
+
+        <div className="admission-results-table-wrap" role="region" aria-label="Resultados de evaluaciones" tabIndex={0}>
         <table className="admission-results-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--c-border)', color: 'var(--c-muted)', fontSize: '12px', textTransform: 'uppercase' }}>
@@ -431,9 +510,18 @@ export default function Admision() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: 'var(--c-muted)' }}>
-                  Cargando evaluaciones...
+              <tr className="admission-loading-row">
+                <td colSpan="7">
+                  <div className="clients-loading-state" role="status" aria-live="polite">
+                    <p>Cargando evaluaciones…</p>
+                    <div className="clients-loading-skeleton" aria-hidden="true">
+                      {Array.from({ length: 6 }, (_, row) => (
+                        <div className="clients-loading-placeholder" key={row}>
+                          <span /><span /><span /><span />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </td>
               </tr>
             ) : error ? (
@@ -504,27 +592,23 @@ export default function Admision() {
             )}
           </tbody>
         </table>
+        </div>
         {!loading && !error && evaluacionesFiltradas.length > FILAS_POR_PAGINA && (
-          <nav className="pagination clients-pagination" aria-label="Paginación de evaluaciones">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              disabled={paginaTabla === 1}
-              onClick={() => setPaginaTabla(actual => Math.max(1, actual - 1))}
-            >
-              Anterior
-            </button>
-            <span className="text-sm">Página {paginaTabla} de {totalPaginasTabla}</span>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              disabled={paginaTabla === totalPaginasTabla}
-              onClick={() => setPaginaTabla(actual => Math.min(totalPaginasTabla, actual + 1))}
-            >
-              Siguiente
-            </button>
+          <nav className="evaluation-pagination" aria-label="Paginación de evaluaciones">
+            <p className="evaluation-pagination-summary">
+              Mostrando <strong>{(paginaTabla - 1) * FILAS_POR_PAGINA + 1}–{Math.min(paginaTabla * FILAS_POR_PAGINA, evaluacionesFiltradas.length)}</strong> de {evaluacionesFiltradas.length} evaluaciones
+            </p>
+            <div className="evaluation-pagination-controls">
+              <button type="button" disabled={paginaTabla === 1} onClick={() => setPaginaTabla(actual => Math.max(1, actual - 1))} aria-label="Página anterior">‹</button>
+              {Array.from({ length: Math.min(5, totalPaginasTabla) }, (_, index) => Math.max(1, Math.min(paginaTabla - 2, totalPaginasTabla - 4)) + index).map(pagina => (
+                <button key={pagina} type="button" aria-label={`Ir a la página ${pagina}`} aria-current={pagina === paginaTabla ? 'page' : undefined} onClick={() => setPaginaTabla(pagina)}>{pagina}</button>
+              ))}
+              <button type="button" disabled={paginaTabla === totalPaginasTabla} onClick={() => setPaginaTabla(actual => Math.min(totalPaginasTabla, actual + 1))} aria-label="Página siguiente">›</button>
+            </div>
+            <p className="evaluation-pagination-position" aria-live="polite">Página {paginaTabla} de {totalPaginasTabla}</p>
           </nav>
         )}
+
       </div>
 
       {/* Modal de Evaluación Manual */}
@@ -533,7 +617,7 @@ export default function Admision() {
           className="sbs-modal-overlay"
           onClick={() => setShowEvalModal(false)}
           style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)',
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(3, 7, 15, 0.6)',
             display: 'flex', justifyContent: 'center', alignItems: 'flex-start', zIndex: 9999, padding: '40px 20px', overflowY: 'auto'
           }}
         >
@@ -743,7 +827,7 @@ export default function Admision() {
         <div 
           className="admission-detail-overlay"
           style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(3, 7, 15, 0.6)',
             display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px'
           }}
           onClick={() => setSelectedClientInfo(null)}
