@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AuthContext } from "../../app/providers/AuthContext.jsx";
+import CustomDatePicker from '../../shared/ui/CustomDatePicker.jsx';
 import {
   Camera,
   Check,
@@ -146,7 +147,7 @@ export default function Evidencias() {
           <span className="evidence-eyebrow">
             <Camera size={15} /> CONTROL DE CAMPO
           </span>
-          <h1>Evidencias de gestión</h1>
+          <h1 style={{fontSize: '26px'}}>Evidencias de gestión</h1>
           <p>
             Registro verificable de las visitas realizadas desde el aplicativo.
           </p>
@@ -253,15 +254,17 @@ export default function Evidencias() {
             </div>
           )}
         </div>
-        <input
+        <CustomDatePicker
+          name="desde"
           aria-label="Desde"
-          type="date"
+          className="evidence-date-input"
           value={filters.desde}
           onChange={(e) => change("desde", e.target.value)}
         />
-        <input
+        <CustomDatePicker
+          name="hasta"
           aria-label="Hasta"
-          type="date"
+          className="evidence-date-input"
           value={filters.hasta}
           onChange={(e) => change("hasta", e.target.value)}
         />
