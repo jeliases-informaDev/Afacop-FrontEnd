@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
-import { ChevronLeft, ChevronRight, ClipboardX } from 'lucide-react';
+import { ClipboardX } from 'lucide-react';
 const FILAS_POR_PAGINA = 12;
 const getEstadoStyle = (estado) => {
   if (estado === 'APTO') {
@@ -283,12 +283,12 @@ export default function Admision() {
         <button className="admission-manual-button"
           onClick={() => { setShowEvalModal(true); setEvalResult(null); setDniSearch(''); }}
           style={{
-            backgroundColor: 'var(--c-primary)', color: 'white', border: 'none', padding: '10px 20px',
+            backgroundColor: 'var(--c-primary)', color: 'white', border: 'none', padding: '10px 20px', 
             borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
             boxShadow: '0 4px 10px rgba(66, 99, 235, 0.3)'
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14m-7-7h14" /></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14m-7-7h14"/></svg>
           Evaluar Manualmente
         </button>
       </div>
@@ -355,7 +355,7 @@ export default function Admision() {
             </div>
           );
         })()}
-
+        
         <div style={{ backgroundColor: 'var(--c-surface)', borderRadius: '12px', padding: '15px', border: '1px solid var(--c-border)', height: '180px' }}>
           <h3 style={{ fontSize: '13px', margin: '0 0 10px 0', color: 'var(--c-muted)', textTransform: 'uppercase', fontWeight: '800' }}>Evaluaciones por Producto</h3>
           <div
@@ -365,19 +365,19 @@ export default function Admision() {
             onPointerDownCapture={(event) => event.preventDefault()}
             onFocusCapture={(event) => event.target.blur()}
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart accessibilityLayer={false} focusable="false" data={[
-                { name: 'MYPE', val: evaluacionesVisibles.filter(e => e.productoVisible?.includes('MYPE')).length },
-                { name: 'Vehicular', val: evaluacionesVisibles.filter(e => e.productoVisible?.includes('Vehicular')).length },
-                { name: 'Personal', val: evaluacionesVisibles.filter(e => e.productoVisible?.includes('Personal')).length }
-              ]} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--c-border)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--c-muted)' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--c-muted)' }} />
-                <RechartsTooltip cursor={false} contentStyle={{ background: 'var(--c-surface)', borderColor: 'var(--c-border)', color: 'var(--c-text)', fontSize: '12px', borderRadius: '8px' }} />
-                <Bar dataKey="val" fill="var(--c-primary)" radius={[4, 4, 0, 0]} barSize={24} />
-              </BarChart>
-            </ResponsiveContainer>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart accessibilityLayer={false} focusable="false" data={[
+              { name: 'MYPE', val: evaluacionesVisibles.filter(e => e.productoVisible?.includes('MYPE')).length },
+              { name: 'Vehicular', val: evaluacionesVisibles.filter(e => e.productoVisible?.includes('Vehicular')).length },
+              { name: 'Personal', val: evaluacionesVisibles.filter(e => e.productoVisible?.includes('Personal')).length }
+            ]} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--c-border)" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--c-muted)' }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--c-muted)' }} />
+              <RechartsTooltip cursor={false} contentStyle={{ background: 'var(--c-surface)', borderColor: 'var(--c-border)', color: 'var(--c-text)', fontSize: '12px', borderRadius: '8px' }} />
+              <Bar dataKey="val" fill="var(--c-primary)" radius={[4, 4, 0, 0]} barSize={24} />
+            </BarChart>
+          </ResponsiveContainer>
           </div>
         </div>
 
@@ -393,7 +393,7 @@ export default function Admision() {
         {/* Barra de búsqueda y filtros */}
         <div className="admission-filter-bar" style={{ display: 'flex', gap: '10px', marginBottom: '16px', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: '1 1 0', minWidth: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" value={admSearch} onChange={e => setAdmSearch(e.target.value)} placeholder="Buscar por nombre, DNI o asesor..."
               style={{ width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--c-border)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter,sans-serif', color: 'var(--c-text)', outline: 'none', background: 'var(--c-surface-2)', boxSizing: 'border-box' }} />
           </div>
@@ -416,21 +416,20 @@ export default function Admision() {
           </span>
         </div>
 
-        <div className="admission-results-table-wrap">
-          <table className="admission-results-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--c-border)', color: 'var(--c-muted)', fontSize: '12px', textTransform: 'uppercase' }}>
-                <th style={{ padding: '12px', fontWeight: 'bold' }}>DNI</th>
-                <th style={{ padding: '12px', fontWeight: 'bold' }}>Ape. Paterno</th>
-                <th style={{ padding: '12px', fontWeight: 'bold' }}>Ape. Materno</th>
-                <th style={{ padding: '12px', fontWeight: 'bold' }}>Nombres</th>
-                <th style={{ padding: '12px', fontWeight: 'bold' }}>Producto</th>
-                <th style={{ padding: '12px', fontWeight: 'bold' }}>Línea Crédito</th>
-                <th style={{ padding: '12px', fontWeight: 'bold' }}>Estado</th>
-                <th aria-hidden="true" style={{ display: 'none', padding: '12px', fontWeight: 'bold' }}>Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
+        <table className="admission-results-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid var(--c-border)', color: 'var(--c-muted)', fontSize: '12px', textTransform: 'uppercase' }}>
+              <th style={{ padding: '12px', fontWeight: 'bold' }}>DNI</th>
+              <th style={{ padding: '12px', fontWeight: 'bold' }}>Ape. Paterno</th>
+              <th style={{ padding: '12px', fontWeight: 'bold' }}>Ape. Materno</th>
+              <th style={{ padding: '12px', fontWeight: 'bold' }}>Nombres</th>
+              <th style={{ padding: '12px', fontWeight: 'bold' }}>Producto</th>
+              <th style={{ padding: '12px', fontWeight: 'bold' }}>Línea Crédito</th>
+              <th style={{ padding: '12px', fontWeight: 'bold' }}>Estado</th>
+              <th aria-hidden="true" style={{ display: 'none', padding: '12px', fontWeight: 'bold' }}>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
             {loading ? (
               <tr>
                 <td colSpan="8" style={{ padding: '24px', textAlign: 'center', color: 'var(--c-muted)' }}>
@@ -476,8 +475,8 @@ export default function Admision() {
               </tr>
             ) : (
               evaluacionesPaginadas.map((ev) => (
-                <tr
-                  key={ev.id}
+                <tr 
+                  key={ev.id} 
                   onClick={() => setSelectedClientInfo(ev)}
                   style={{ cursor: 'pointer', borderBottom: '1px solid var(--c-border)', transition: 'background 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)'}
@@ -503,56 +502,34 @@ export default function Admision() {
                 </tr>
               ))
             )}
-            </tbody>
-          </table>
-        </div>
-        <br />
+          </tbody>
+        </table>
         {!loading && !error && evaluacionesFiltradas.length > FILAS_POR_PAGINA && (
-          <nav className="" style={{ display: 'flex', gap: '8px' }} aria-label="Paginación de evaluaciones">
-            <div className="admission-pagination-controls" >
-              <button
-                type="button"
-                className="admission-pagination-button"
-                disabled={paginaTabla === 1}
-                onClick={() => setPaginaTabla(actual => Math.max(1, actual - 1))}
-                aria-label="Ir a la página anterior"
-              >
-                <ChevronLeft size={18} strokeWidth={2.4} aria-hidden="true" />
-              </button>
-              <div className="admission-pagination-pages" aria-label="Páginas disponibles">
-                {Array.from({ length: totalPaginasTabla }, (_, index) => index + 1).map((pagina) => (
-                  <button
-                    key={pagina}
-                    type="button"
-                    className={`admission-pagination-button${pagina === paginaTabla ? ' is-active' : ''}`}
-                    aria-current={pagina === paginaTabla ? 'page' : undefined}
-                    aria-label={`Ir a la página ${pagina}`}
-                    onClick={() => setPaginaTabla(pagina)}
-                  >
-                    {pagina}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="admission-pagination-button"
-                disabled={paginaTabla === totalPaginasTabla}
-                onClick={() => setPaginaTabla(actual => Math.min(totalPaginasTabla, actual + 1))}
-                aria-label="Ir a la página siguiente"
-              >
-                <ChevronRight size={18} strokeWidth={2.4} aria-hidden="true" />
-              </button>
-            </div>
-            <div className="admission-pagination-status" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--c-muted)' }}>
-              <span className="admission-pagination-summary">Página {paginaTabla} de {totalPaginasTabla}</span>
-            </div>
+          <nav className="pagination clients-pagination" aria-label="Paginación de evaluaciones">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={paginaTabla === 1}
+              onClick={() => setPaginaTabla(actual => Math.max(1, actual - 1))}
+            >
+              Anterior
+            </button>
+            <span className="text-sm">Página {paginaTabla} de {totalPaginasTabla}</span>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={paginaTabla === totalPaginasTabla}
+              onClick={() => setPaginaTabla(actual => Math.min(totalPaginasTabla, actual + 1))}
+            >
+              Siguiente
+            </button>
           </nav>
         )}
       </div>
 
       {/* Modal de Evaluación Manual */}
       {showEvalModal && createPortal((
-        <div
+        <div 
           className="sbs-modal-overlay"
           onClick={() => setShowEvalModal(false)}
           style={{
@@ -560,7 +537,7 @@ export default function Admision() {
             display: 'flex', justifyContent: 'center', alignItems: 'flex-start', zIndex: 9999, padding: '40px 20px', overflowY: 'auto'
           }}
         >
-          <div
+          <div 
             className="sbs-modal"
             onClick={e => e.stopPropagation()}
             style={{
@@ -569,7 +546,7 @@ export default function Admision() {
             }}
           >
             <div className="sbs-modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--c-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--c-surface-2)', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--c-text)', margin: 0 }}>Consulta de Calificación Crediticia (SBS)</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--c-text)', margin: 0 }}>Consulta de calificación de personas</h2>
               <button 
                 onClick={() => setShowEvalModal(false)} 
                 style={{ 
@@ -584,13 +561,13 @@ export default function Admision() {
                   gap: '8px', 
                   fontWeight: 'bold', 
                   fontSize: '13px',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s' 
                 }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--c-surface-2)'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--c-surface)'}
               >
                 Cerrar
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
 
@@ -607,11 +584,11 @@ export default function Admision() {
                   autoFocus
                   style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--c-border)', backgroundColor: 'var(--c-surface-2)', color: 'var(--c-text)', fontSize: '16px', outline: 'none' }}
                 />
-                <button
+                <button 
                   onClick={handleBuscarSBS}
                   disabled={loadingEval || dniSearch.length < 8}
                   style={{
-                    backgroundColor: '#0CA678', color: 'white', border: 'none', padding: '0 24px', borderRadius: '8px',
+                    backgroundColor: '#0CA678', color: 'white', border: 'none', padding: '0 24px', borderRadius: '8px', 
                     fontWeight: 'bold', cursor: (loadingEval || dniSearch.length < 8) ? 'not-allowed' : 'pointer', fontSize: '16px',
                     opacity: (loadingEval || dniSearch.length < 8) ? 0.6 : 1
                   }}
@@ -632,11 +609,11 @@ export default function Admision() {
               {/* Resultados */}
               {evalResult && !loadingEval && (() => {
                 const RATING_COLS = [
-                  { key: 'normal', label: 'Normal', color: '#10B981' },
-                  { key: 'problemas', label: 'Prob. Potenciales', color: '#84CC16' },
-                  { key: 'deficiente', label: 'Deficiente', color: '#EAB308' },
-                  { key: 'dudoso', label: 'Dudoso', color: '#F97316' },
-                  { key: 'perdida', label: 'Pérdida', color: '#DC2626' },
+                  { key: 'normal',    label: 'Normal',               color: '#10B981' },
+                  { key: 'problemas', label: 'Prob. Potenciales',    color: '#84CC16' },
+                  { key: 'deficiente',label: 'Deficiente',           color: '#EAB308' },
+                  { key: 'dudoso',    label: 'Dudoso',               color: '#F97316' },
+                  { key: 'perdida',   label: 'Pérdida',              color: '#DC2626' },
                 ];
                 const thStyle = { padding: '8px 10px', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left', borderBottom: '1px solid var(--c-border)', whiteSpace: 'nowrap' };
                 const tdStyle = { padding: '8px 10px', fontSize: '12px', color: 'var(--c-text)', borderBottom: '1px solid var(--c-border)' };
@@ -762,16 +739,16 @@ export default function Admision() {
       ), document.body)}
 
       {/* Modal de Detalle del Cliente */}
-      {selectedClientInfo && createPortal(
-        <div
+      {selectedClientInfo && (
+        <div 
           className="admission-detail-overlay"
           style={{
-            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)',
             display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px'
           }}
           onClick={() => setSelectedClientInfo(null)}
         >
-          <div
+          <div 
             className="admission-detail-modal"
             style={{
               backgroundColor: 'var(--c-surface)', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '90vh',
@@ -784,19 +761,19 @@ export default function Admision() {
                 <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--c-text)', margin: 0 }}>{selectedClientInfo.nombres} {selectedClientInfo.ape_pat} {selectedClientInfo.ape_mat}</h2>
                 <p style={{ color: 'var(--c-muted)', fontSize: '13px', marginTop: '4px', margin: 0 }}>DNI: {selectedClientInfo.dni} • Estado: <strong style={{ color: selectedClientInfo.estadoVisible === 'APTO' ? '#0CA678' : '#EF4444' }}>{selectedClientInfo.estadoVisible}</strong></p>
               </div>
-              <button
-                onClick={() => setSelectedClientInfo(null)}
+              <button 
+                onClick={() => setSelectedClientInfo(null)} 
                 style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', cursor: 'pointer', color: 'var(--c-text)', padding: '8px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', transition: 'all 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--c-hover)'}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--c-surface)'}
               >
                 Cerrar
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
 
             <div className="admission-detail-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', overflowX: 'hidden', flex: '1 1 auto', minHeight: 0, overscrollBehavior: 'contain' }}>
-
+              
               {/* Sección 1 */}
               <div style={{ border: '1px solid var(--c-border)', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
                 <div style={{ backgroundColor: 'var(--c-surface-2)', padding: '12px 16px', fontWeight: 'bold', color: 'var(--c-text)', borderBottom: '1px solid var(--c-border)' }}>
@@ -866,7 +843,7 @@ export default function Admision() {
             </div>
           </div>
         </div>
-        , document.body)}
+      )}
     </div>
   );
 }
