@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import { useNotification } from '../../app/providers/NotificationContext.jsx';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, Circle } from 'react-leaflet';
@@ -311,7 +312,7 @@ const RouteCard = ({ route, onEdit, onDelete, onStatusChange, onClientStatusChan
             {isDeleting ? 'Eliminando…' : '🗑️ Eliminar'}
           </button>
         </div>
-        {confirmAction && (
+        {confirmAction && createPortal(
           <div role="dialog" aria-modal="true" aria-labelledby={`route-confirm-title-${route.id_ruta}`} style={{ position: 'fixed', inset: 0, zIndex: 12000, background: 'rgba(15, 23, 42, 0.48)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
             <div style={{ width: 'min(440px, 100%)', background: 'var(--c-surface)', border: '1px solid var(--c-border)', borderRadius: 18, boxShadow: '0 24px 60px rgba(15, 23, 42, 0.24)', padding: 24 }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.10)', color: 'var(--c-danger)', fontSize: 22, marginBottom: 16 }}>!</div>
@@ -331,7 +332,7 @@ const RouteCard = ({ route, onEdit, onDelete, onStatusChange, onClientStatusChan
               </div>
             </div>
           </div>
-        )}
+        , document.body)}
       </div>
     </div>
   );
