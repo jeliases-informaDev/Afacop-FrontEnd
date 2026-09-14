@@ -144,6 +144,20 @@ export default function Workers() {
     nombres: '', apellido_paterno: '', apellido_materno: '', dni: '', telefono: '', email: '', distrito: '', latitud: '', longitud: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [dniTouched, setDniTouched] = useState(false);
+  const dniError = !newWorker.dni.trim()
+    ? 'Ingresa el DNI del asesor.'
+    : !/^\d{8}$/.test(newWorker.dni) ? 'El DNI debe tener exactamente 8 números.' : '';
+  const dniInputRef = useRef(null);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const phoneInputRef = useRef(null);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailInputRef = useRef(null);
+  const [emailTypeMismatch, setEmailTypeMismatch] = useState(false);
+  const emailError = newWorker.email && (emailTypeMismatch || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newWorker.email))
+    ? 'Ingresa un correo válido, por ejemplo: nombre@correo.com.' : '';
+  const phoneError = newWorker.telefono && !/^9\d{8}$/.test(newWorker.telefono)
+    ? 'Ingresa un celular de 9 números que comience con 9.' : '';
   const [filtroEstado, setFiltroEstado] = useState('TODOS');
   const [workerPage, setWorkerPage] = useState(1);
 
@@ -219,6 +233,21 @@ export default function Workers() {
 
   const handleCreateWorker = async (e) => {
     e.preventDefault();
+    setDniTouched(true);
+    setPhoneTouched(true);
+    setEmailTouched(true);
+    if (dniError) {
+      dniInputRef.current?.focus();
+      return;
+    }
+    if (phoneError) {
+      phoneInputRef.current?.focus();
+      return;
+    }
+    if (emailError || emailInputRef.current?.validity.typeMismatch) {
+      emailInputRef.current?.focus();
+      return;
+    }
     setCreating(true);
 
     const payload = {
@@ -329,7 +358,7 @@ export default function Workers() {
           <div className="workers-toolbar-actions" style={{ display: 'flex', gap: '12px' }}>
             <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".xlsx" onChange={handleFileChange} />
             <button className="btn btn-ghost" style={{ border: '1px solid var(--c-border)' }} onClick={handleImportExcel} disabled={creating}>Importar Excel</button>
-            <button className="btn btn-primary" style={{ padding: '12px 24px' }} onClick={() => setShowModal(true)}>
+            <button className="btn btn-primary" style={{ padding: '12px 24px' }} onClick={() => { setDniTouched(false); setPhoneTouched(false); setEmailTouched(false); setEmailTypeMismatch(false); setShowModal(true); }}>
               + Adicionar Colaborador
             </button>
           </div>
@@ -486,16 +515,27 @@ export default function Workers() {
       {/* MODAL CREAR */}
       {showModal && createPortal(
         <div className="modal-overlay worker-create-overlay" style={{ background: 'rgba(3, 7, 15, 0.6)', backdropFilter: 'none' }}>
-          <div className="modal worker-create-modal">
+          <div className="modal worker-create-modal" role="dialog" aria-modal="true" aria-labelledby="worker-create-title">
             <div className="modal-header">
-              <span className="modal-title">Registrar nuevo asesor</span>
-              <button className="btn-ghost btn-sm" onClick={() => setShowModal(false)}><X size={18} /></button>
+              <div className="worker-create-heading">
+                <span className="worker-create-icon"><UserIcon size={22} aria-hidden="true" /></span>
+                <div><h2 id="worker-create-title">Nuevo asesor</h2><p>Completa sus datos y asigna su ubicación base.</p></div>
+              </div>
+              <button type="button" className="worker-create-close" aria-label="Cerrar" onClick={() => setShowModal(false)}><X size={18} /></button>
             </div>
             <form className="worker-create-form" onSubmit={handleCreateWorker}>
               <div className="modal-body">
+                <div className="worker-create-section-heading">Datos personales <span>DNI, nombres y apellidos obligatorios</span></div>
+                <div className="form-row form-row-2">
                 <div className="form-group">
-                  <label className="form-label">DNI</label>
+                  <label className="form-label" htmlFor="worker-create-dni">DNI</label>
                   <input
+                    id="worker-create-dni"
+                    ref={dniInputRef}
+                    aria-invalid={dniTouched && Boolean(dniError)}
+                    aria-describedby={dniTouched && dniError ? 'worker-create-dni-error' : undefined}
+                    onBlur={() => setDniTouched(true)}
+                    onInvalid={event => { event.preventDefault(); setDniTouched(true); dniInputRef.current?.focus(); }}
                     className="form-input"
                     required
                     inputMode="numeric"
@@ -503,26 +543,71 @@ export default function Workers() {
                     minLength={8}
                     maxLength={8}
                     pattern="[0-9]{8}"
-                    placeholder="Ingrese los 8 dígitos"
+                    placeholder="Ingrese su Nr. de DNI"
                     value={newWorker.dni}
                     onChange={e => setNewWorker({...newWorker, dni: e.target.value.replace(/\D/g, '').slice(0, 8)})}
                   />
+                  {dniTouched && dniError && <small id="worker-create-dni-error" role="alert" className="worker-field-error">{dniError}</small>}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Nombres</label>
-                  <input className="form-input" required value={newWorker.nombres} onChange={e => setNewWorker({...newWorker, nombres: e.target.value})} />
+                  <input 
+                    className="form-input" 
+                    required value={newWorker.nombres} 
+                    onChange={e => setNewWorker({...newWorker, nombres: e.target.value})} 
+                    placeholder="Ingrese sus nombres"
+                    />
+                </div>
                 </div>
                 <div className="form-row form-row-2">
-                  <div className="form-group"><label className="form-label">Apellido Paterno</label><input className="form-input" required value={newWorker.apellido_paterno} onChange={e => setNewWorker({...newWorker, apellido_paterno: e.target.value})} /></div>
-                  <div className="form-group"><label className="form-label">Apellido Materno</label><input className="form-input" required value={newWorker.apellido_materno} onChange={e => setNewWorker({...newWorker, apellido_materno: e.target.value})} /></div>
+                  <div className="form-group"><label className="form-label">Apellido Paterno</label><input className="form-input" placeholder="Ingrese su apellido paterno" required value={newWorker.apellido_paterno} onChange={e => setNewWorker({...newWorker, apellido_paterno: e.target.value})} /></div>
+                  <div className="form-group"><label className="form-label">Apellido Materno</label><input className="form-input" placeholder="Ingrese su apellido materno" required value={newWorker.apellido_materno} onChange={e => setNewWorker({...newWorker, apellido_materno: e.target.value})} /></div>
                 </div>
+                <div className="worker-create-section-heading">Contacto y zona de trabajo <span>Datos de contacto y punto de partida</span></div>
                 <div className="form-row form-row-2">
-                  <div className="form-group"><label className="form-label">Teléfono</label><input className="form-input" value={newWorker.telefono} onChange={e => setNewWorker({...newWorker, telefono: e.target.value})} /></div>
-                  <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" value={newWorker.email} onChange={e => setNewWorker({...newWorker, email: e.target.value})} /></div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="worker-create-phone">Teléfono</label>
+                    <input
+                      id="worker-create-phone"
+                      ref={phoneInputRef}
+                      className="form-input"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      maxLength={9}
+                      pattern="9[0-9]{8}"
+                      placeholder="Ej. 987654321"
+                      value={newWorker.telefono}
+                      aria-invalid={phoneTouched && Boolean(phoneError)}
+                      aria-describedby={phoneTouched && phoneError ? 'worker-create-phone-error' : undefined}
+                      onBlur={() => setPhoneTouched(true)}
+                      onInvalid={event => { event.preventDefault(); setPhoneTouched(true); phoneInputRef.current?.focus(); }}
+                      onChange={e => setNewWorker({...newWorker, telefono: e.target.value.replace(/\D/g, '').slice(0, 9)})}
+                    />
+                    {phoneTouched && phoneError && <small id="worker-create-phone-error" role="alert" className="worker-field-error">{phoneError}</small>}
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="worker-create-email">Email</label>
+                    <input
+                      id="worker-create-email"
+                      ref={emailInputRef}
+                      className="form-input"
+                      placeholder="nombre@correo.com"
+                      type="email"
+                      autoComplete="email"
+                      value={newWorker.email}
+                      aria-invalid={emailTouched && Boolean(emailError)}
+                      aria-describedby={emailTouched && emailError ? 'worker-create-email-error' : undefined}
+                      onBlur={() => setEmailTouched(true)}
+                      onInvalid={event => { event.preventDefault(); setEmailTypeMismatch(event.target.validity.typeMismatch); setEmailTouched(true); emailInputRef.current?.focus(); }}
+                      onChange={e => { setEmailTypeMismatch(e.target.validity.typeMismatch); setNewWorker({...newWorker, email: e.target.value.trim()}); }}
+                    />
+                    {emailTouched && emailError && <small id="worker-create-email-error" role="alert" className="worker-field-error">{emailError}</small>}
+                  </div>
                 </div>
-                <div className="form-group"><label className="form-label">Distrito Base</label><input className="form-input" value={newWorker.distrito} onChange={e => setNewWorker({...newWorker, distrito: e.target.value})} /></div>
+                <div className="form-group"><label className="form-label">Distrito Base</label><input className="form-input" placeholder="Ingrese su distrito" value={newWorker.distrito} onChange={e => setNewWorker({...newWorker, distrito: e.target.value})} /></div>
                 <div className="form-group">
-                  <label className="form-label" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '900' }}>Ubicación</label>
+                  <label className="form-label" >Ubicación</label>
                   <LocationInput
                     latitud={newWorker.latitud}
                     longitud={newWorker.longitud}
@@ -532,7 +617,7 @@ export default function Workers() {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-ghost" onClick={() => setShowModal(false)}>Cancelar</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                 <button type="submit" className="btn btn-primary" disabled={creating}>{creating ? 'Guardando...' : 'Crear asesor'}</button>
               </div>
             </form>

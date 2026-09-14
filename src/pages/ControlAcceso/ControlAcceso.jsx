@@ -107,7 +107,7 @@ function EstadoBadge({ estado }) {
 }
 
 // ─── Field helpers ─────────────────────────────────────────────
-function Field({ label, value, onChange, type = 'text', required, placeholder, error, hint }) {
+function Field({ label, value, onChange, onBlur, type = 'text', required, placeholder, error, hint }) {
   const [showPwd, setShowPwd] = useState(false);
   const isPassword = type === 'password';
   const inputType = isPassword ? (showPwd ? 'text' : 'password') : type;
@@ -117,21 +117,100 @@ function Field({ label, value, onChange, type = 'text', required, placeholder, e
         {label}{required && <span style={{ color: '#DC3545' }}> *</span>}
       </label>
       <div style={{ position: 'relative' }}>
-        <input type={inputType} value={value} onChange={e => onChange(e.target.value)} required={required} placeholder={placeholder} aria-invalid={Boolean(error)}
+        <input type={inputType} value={value} onChange={e => onChange(e.target.value)} onBlur={onBlur} required={required} placeholder={placeholder} aria-invalid={Boolean(error)}
           style={{ width: '100%', padding: isPassword ? '9px 36px 9px 12px' : '9px 12px', border: `1px solid ${error ? '#DC3545' : '#DEE2E6'}`, borderRadius: '6px', fontSize: '13px', color: '#212529', fontFamily: 'Inter, sans-serif', outline: 'none', background: '#FAFAFA', transition: 'border-color 0.15s', boxSizing: 'border-box' }}
-          onFocus={e => e.target.style.borderColor = '#0B22A1'}
-          onBlur={e => e.target.style.borderColor = '#DEE2E6'} />
+          onFocus={e => e.target.style.borderColor = '#0B22A1'} />
         {isPassword && (
           <button type="button" onClick={() => setShowPwd(p => !p)}
             style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#6C757D', display: 'flex', alignItems: 'center' }}>
             {showPwd
-              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
             }
           </button>
         )}
       </div>
-      {(error || hint) && <span style={{ fontSize: 10, lineHeight: 1.35, color: error ? '#DC3545' : '#6C757D' }}>{error || hint}</span>}
+      {(error || hint) && (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, lineHeight: 1.35, color: error ? '#DC3545' : '#6C757D' }}>
+          {error && <AlertTriangle size={11} style={{ flexShrink: 0 }} />}
+          {error || hint}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function UserFormSelect({ value, onChange, options, ariaLabel, disabled = false }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+  const menuRef = useRef(null);
+  const [menuPosition, setMenuPosition] = useState({});
+  const selectedOption = options.find(option => option.value === value) || options[0];
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target) && !menuRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const close = event => {
+      if (!menuRef.current?.contains(event.target)) setIsOpen(false);
+    };
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="routes-custom-select" ref={containerRef} style={{ width: '100%', minWidth: 0, flex: 'none' }} onKeyDown={event => { if (event.key === 'Escape') { setIsOpen(false); containerRef.current?.querySelector('button')?.focus(); } }}>
+      <button
+        type="button"
+        className={`routes-custom-select-trigger${isOpen ? ' is-open' : ''}`}
+        disabled={disabled}
+        style={{ height: 40, fontSize: 13, opacity: disabled ? .65 : 1 }}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => {
+          const rect = containerRef.current.getBoundingClientRect();
+          const height = Math.min(options.length * 40 + 12, 240);
+          setMenuPosition({ position: 'fixed', left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)), width: rect.width, right: 'auto', top: rect.bottom + height + 8 > window.innerHeight ? Math.max(8, rect.top - height - 7) : rect.bottom + 7, maxHeight: height, overflowY: 'auto', zIndex: 21000 });
+          setIsOpen(open => !open);
+        }}
+      >
+        <span>{selectedOption.label}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+      {isOpen && createPortal(
+        <div ref={menuRef} style={menuPosition} className="routes-custom-select-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map(option => {
+            const selectedOption = option.value === value;
+            return (
+              <button
+                type="button"
+                role="option"
+                aria-selected={selectedOption}
+                className={`routes-custom-select-option${selectedOption ? ' is-selected' : ''}`}
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+              >
+                <span>{option.label}</span>
+                {selectedOption && <Check size={16} aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>, document.body
+      )}
     </div>
   );
 }
@@ -140,10 +219,7 @@ function SelectField({ label, value, onChange, options, disabled = false, hint =
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
       <label style={{ fontSize: '11px', fontWeight: '700', color: '#6C757D', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</label>
-      <select className="professional-select" value={value} onChange={e => onChange(e.target.value)} disabled={disabled}
-        style={{ width: '100%', paddingRight: '42px', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.65 : 1 }}>
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      <UserFormSelect value={value} onChange={onChange} options={options} disabled={disabled} ariaLabel={label} />
       {hint && <span style={{ fontSize: 10, lineHeight: 1.35, color: '#6C757D' }}>{hint}</span>}
     </div>
   );
@@ -155,20 +231,26 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
     nombres: '', apellidos: '', username: '', password: '', email: '', rol: 'ASESOR', sede: 'Lima', estado: 'ACTIVO', id_asesor: null, mfa_habilitado: false
   });
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const formRef = useRef(form);
+  useEffect(() => { formRef.current = form; }, [form]);
+
   const [advisors, setAdvisors] = useState([]);
   const [advisorSearch, setAdvisorSearch] = useState(usuario?.id_asesor ? `${usuario.nombres || ''} ${usuario.apellidos || ''}`.trim() : '');
   const [advisorOpen, setAdvisorOpen] = useState(false);
   const [advisorsLoading, setAdvisorsLoading] = useState(false);
+
   useEffect(() => {
     if (form.rol !== 'ASESOR') return;
     let active = true;
     setAdvisorsLoading(true);
     api.get('/api/asesores', { params: { estado: 'ACTIVO', limit: 100 } })
       .then(response => { if (active) setAdvisors(Array.isArray(response.data?.data) ? response.data.data : []); })
-      .catch(() => { if (active) setErrors(prev => ({ ...prev, id_asesor: 'No se pudieron cargar los asesores activos.' })); })
+      .catch(() => { if (active) { setTouched(prev => ({ ...prev, id_asesor: true })); setErrors(prev => ({ ...prev, id_asesor: 'No se pudieron cargar los asesores activos.' })); } })
       .finally(() => { if (active) setAdvisorsLoading(false); });
     return () => { active = false; };
   }, [api, form.rol]);
+
   const availableAdvisors = useMemo(() => {
     const query = advisorSearch.trim().toLowerCase();
     return advisors.filter(advisor => {
@@ -180,52 +262,94 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
       return !query || haystack.includes(query);
     }).slice(0, 8);
   }, [advisors, advisorSearch, linkedAdvisorIds, usuario?.id_asesor]);
+
+  // ── Validación estilo reactive forms ─────────────────────
+  const validateField = (field, values) => {
+    switch (field) {
+      case 'id_asesor':
+        if (values.rol === 'ASESOR' && !values.id_asesor) return 'Selecciona un asesor activo de la lista.';
+        return '';
+      case 'nombres':
+        if (values.rol !== 'ASESOR' && !values.nombres.trim()) return 'Ingresa los nombres.';
+        return '';
+      case 'apellidos':
+        if (values.rol !== 'ASESOR' && !values.apellidos.trim()) return 'Ingresa los apellidos.';
+        return '';
+      case 'username':
+        if (!values.username.trim()) return 'El usuario es obligatorio.';
+        if (!/^[A-Za-z0-9._-]+$/.test(values.username.trim())) return 'Usa letras, números, punto, guion o guion bajo.';
+        return '';
+      case 'password':
+        if (!usuario && !values.password) return 'La contraseña es obligatoria.';
+        if (values.password && values.password.length < 12) return 'Debe tener al menos 12 caracteres.';
+        return '';
+      case 'email':
+        if (!values.email.trim()) return 'El correo electrónico es obligatorio.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) return 'Ingresa un correo electrónico válido.';
+        return '';
+      default:
+        return '';
+    }
+  };
+
+  const FIELDS = ['nombres', 'apellidos', 'username', 'password', 'email', 'id_asesor'];
+
+  // markAsTouched + revalida ese campo (como (blur)="onTouched()" en Angular)
+  const markTouched = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    setErrors(prev => ({ ...prev, [field]: validateField(field, formRef.current) }));
+  };
+
+  // onChange: si el campo ya fue tocado, revalida en vivo (como updateOn: 'change' tras el primer touched)
+  const handleChange = (field, value) => {
+    const nextForm = { ...form, [field]: value };
+    setForm(nextForm);
+    if (touched[field]) {
+      setErrors(prev => ({ ...prev, [field]: validateField(field, nextForm) }));
+    }
+  };
+
   const selectAdvisor = (advisor) => {
     const apellidos = `${advisor.apellido_paterno || ''} ${advisor.apellido_materno || ''}`.trim();
-    setForm(prev => ({
-      ...prev,
+    const nextForm = {
+      ...form,
       id_asesor: Number(advisor.id_asesor ?? advisor.id),
       nombres: advisor.nombres || '',
       apellidos,
       email: advisor.correo || advisor.email || '',
-      sede: advisor.distrito || prev.sede,
-    }));
+      sede: advisor.distrito || form.sede,
+    };
+    setForm(nextForm);
     setAdvisorSearch(`${advisor.nombres || ''} ${apellidos}`.trim());
     setAdvisorOpen(false);
-    setErrors(prev => ({ ...prev, id_asesor: '' }));
+    setTouched(prev => ({ ...prev, id_asesor: true }));
+    setErrors(prev => ({ ...prev, id_asesor: validateField('id_asesor', nextForm) }));
   };
-  const handleChange = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: '' }));
-  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    const nextErrors = {};
-    if (form.rol === 'ASESOR' && !form.id_asesor) nextErrors.id_asesor = 'Selecciona un asesor activo de la lista.';
-    if (form.rol !== 'ASESOR' && !form.nombres.trim()) nextErrors.nombres = 'Ingresa los nombres.';
-    if (form.rol !== 'ASESOR' && !form.apellidos.trim()) nextErrors.apellidos = 'Ingresa los apellidos.';
-    if (!/^[A-Za-z0-9._-]+$/.test(form.username.trim())) nextErrors.username = 'Usa letras, números, punto, guion o guion bajo.';
-    if (!usuario && !form.password) nextErrors.password = 'La contraseña es obligatoria.';
-    if (form.password && form.password.length < 12) nextErrors.password = 'Debe tener al menos 12 caracteres.';
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) nextErrors.email = 'Ingresa un correo electrónico válido.';
-    if (Object.keys(nextErrors).length) {
-      setErrors(nextErrors);
-      return;
-    }
+    const allTouched = FIELDS.reduce((acc, f) => ({ ...acc, [f]: true }), {});
+    const nextErrors = FIELDS.reduce((acc, f) => ({ ...acc, [f]: validateField(f, form) }), {});
+    setTouched(allTouched);
+    setErrors(nextErrors);
+    if (Object.values(nextErrors).some(Boolean)) return;
     onSave({ ...form, id: usuario?.id || `u${Date.now()}` });
   };
 
   return createPortal((
     <div className="user-modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(3, 7, 15, 0.6)', backdropFilter: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20000, padding: 20 }}>
-      <div className="user-modal-card" style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E7EB', width: '100%', maxWidth: 540, boxShadow: '0 24px 64px rgba(0,0,0,0.12)' }}>
+      <div className={`user-modal-card${!usuario ? ' user-create-styled' : ''}`} style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E7EB', width: '100%', maxWidth: 540, boxShadow: '0 24px 64px rgba(0,0,0,0.12)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #E5E7EB', background: '#F8FAFF', borderRadius: '16px 16px 0 0' }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#212529', letterSpacing: '-0.3px' }}>{usuario ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
-            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6C757D' }}>{usuario ? 'Modifica los datos del operador' : 'Registra un nuevo operador en el sistema'}</p>
+          <div className="user-create-heading">
+            {!usuario && <span className="user-create-icon"><Users size={22} aria-hidden="true" /></span>}
+            <div>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#212529', letterSpacing: '-0.3px' }}>{usuario ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#6C757D' }}>{usuario ? 'Modifica los datos del operador' : 'Registra un nuevo operador en el sistema'}</p>
+            </div>
           </div>
-          <button onClick={onClose} style={{ background: '#F3F4F6', border: 'none', cursor: 'pointer', color: '#6C757D', display: 'flex', padding: '6px', borderRadius: '8px' }}><X size={18} /></button>
+          <button type="button" aria-label="Cerrar" onClick={onClose} style={{ background: '#F3F4F6', border: 'none', cursor: 'pointer', color: '#6C757D', display: 'flex', padding: '6px', borderRadius: '8px' }}><X size={18} /></button>
         </div>
-        <form className="user-modal-form" onSubmit={handleSubmit}>
+        <form className="user-modal-form" onSubmit={handleSubmit} noValidate>
           <div className="user-modal-body" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {form.rol === 'ASESOR' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, position: 'relative' }}>
@@ -241,8 +365,11 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
                     onChange={event => {
                       setAdvisorSearch(event.target.value);
                       setAdvisorOpen(true);
-                      setForm(prev => ({ ...prev, id_asesor: null, nombres: '', apellidos: '', email: '' }));
+                      const nextForm = { ...form, id_asesor: null, nombres: '', apellidos: '', email: '' };
+                      setForm(nextForm);
+                      if (touched.id_asesor) setErrors(prev => ({ ...prev, id_asesor: validateField('id_asesor', nextForm) }));
                     }}
+                    onBlur={() => setTimeout(() => markTouched('id_asesor'), 150)}
                     placeholder="Buscar por nombre, apellido o DNI..."
                     autoComplete="off"
                     aria-expanded={advisorOpen}
@@ -263,19 +390,23 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
                       )) : <div style={{ padding: 14, fontSize: 12, color: '#6C757D' }}>No hay asesores activos disponibles.</div>}
                   </div>
                 )}
-                {errors.id_asesor && <span style={{ fontSize: 10, color: '#DC3545' }}>{errors.id_asesor}</span>}
+                {errors.id_asesor && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#DC3545' }}>
+                    <AlertTriangle size={11} style={{ flexShrink: 0 }} /> {errors.id_asesor}
+                  </span>
+                )}
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <Field label="Nombres" value={form.nombres} onChange={v => handleChange('nombres', v)} required error={errors.nombres} />
-                <Field label="Apellidos" value={form.apellidos} onChange={v => handleChange('apellidos', v)} required error={errors.apellidos} />
+                <Field label="Nombres" placeholder="Ingrese sus nombres" value={form.nombres} onChange={v => handleChange('nombres', v)} onBlur={() => markTouched('nombres')} required error={errors.nombres} />
+                <Field label="Apellidos" placeholder="Ingrese sus apellidos" value={form.apellidos} onChange={v => handleChange('apellidos', v)} onBlur={() => markTouched('apellidos')} required error={errors.apellidos} />
               </div>
             )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="Usuario" value={form.username} onChange={v => handleChange('username', v)} required error={errors.username} />
-              <Field label="Contraseña" value={form.password} type="password" onChange={v => handleChange('password', v)} placeholder={usuario ? '(sin cambio)' : ''} required={!usuario} error={errors.password} hint="Mínimo 12 caracteres." />
+              <Field label="Usuario" placeholder="Ingrese su usuario" value={form.username} onChange={v => handleChange('username', v)} onBlur={() => markTouched('username')} required error={errors.username} />
+              <Field label="Contraseña" placeholder="Ingrese una contraseña" value={form.password} type="password" onChange={v => handleChange('password', v)} onBlur={() => markTouched('password')} required={!usuario} error={errors.password} hint="Mínimo 12 caracteres." />
             </div>
-            <Field label="Correo electrónico" value={form.email} type="email" onChange={v => handleChange('email', v)} error={errors.email} />
+            <Field label="Correo electrónico" placeholder="Ingrese un email" value={form.email} type="email" onChange={v => handleChange('email', v)} onBlur={() => markTouched('email')} error={errors.email} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <SelectField label="Rol" value={form.rol} onChange={v => setForm(prev => ({ ...prev, rol: v, id_asesor: v === 'ASESOR' ? prev.id_asesor : null }))} options={Object.entries(rolesConfig || ROLES_CONFIG).map(([k, v]) => ({ value: k, label: v.label }))} />
               <SelectField label="Sede" value={form.sede} onChange={v => handleChange('sede', v)} options={[{ value: 'Lima', label: 'Lima' }, { value: 'Arequipa', label: 'Arequipa' }]} />
@@ -284,7 +415,6 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
               hint={isCurrentUser ? 'Tu propia cuenta debe permanecer activa mientras tienes una sesión iniciada.' : ''}
               options={[{ value: 'ACTIVO', label: 'Activo' }, { value: 'INACTIVO', label: 'Inactivo' }]} />
 
-            {/* MFA */}
             <div
               onClick={() => handleChange('mfa_habilitado', !form.mfa_habilitado)}
               style={{
@@ -303,8 +433,8 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
                   transition: 'background 0.2s',
                 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
-                    <circle cx="12" cy="16" r="1" fill="#fff" stroke="none"/>
+                    <rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                    <circle cx="12" cy="16" r="1" fill="#fff" stroke="none" />
                   </svg>
                 </div>
                 <div>
@@ -312,7 +442,6 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
                   <div style={{ fontSize: 11, color: '#6C757D', marginTop: 1 }}>Requiere verificación adicional al iniciar sesión</div>
                 </div>
               </div>
-              {/* Toggle */}
               <div style={{
                 width: 40, height: 22, borderRadius: 99, flexShrink: 0,
                 background: form.mfa_habilitado ? '#0B22A1' : '#CED4DA',
@@ -339,7 +468,6 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
     </div>
   ), document.body);
 }
-
 // ─── Panel de edición de permisos de rol ──────────────────────
 function RolPermisoEditor({ rolKey, rolCfg, onSave, onCancel }) {
   const [modulos, setModulos] = useState([...rolCfg.modulos]);
@@ -438,7 +566,7 @@ export default function ControlAcceso() {
         device: describeDevice(entry.user_agent),
         tipo: entry.estado_http >= 400 ? 'ALERTA' : 'OPERACIÓN',
         color: entry.estado_http >= 400 ? '#DC2626' : '#059669',
-        icon: entry.estado_http >= 400 ? <AlertTriangle size={15}/> : <Unlock size={15}/>,
+        icon: entry.estado_http >= 400 ? <AlertTriangle size={15} /> : <Unlock size={15} />,
       })));
     }).catch(error => showToast(error.response?.data?.error || 'No se pudo cargar la auditoría.', 'error'));
   }, [tab, api, showToast]);
@@ -452,6 +580,14 @@ export default function ControlAcceso() {
       return matchSearch && matchRol && matchEstado;
     });
   }, [localUsuarios, search, filtroRol, filtroEstado]);
+
+  const [userPage, setUserPage] = useState(1);
+  const usersPerPage = 3;
+  const totalUserPages = Math.max(1, Math.ceil(filtered.length / usersPerPage));
+  const currentUserPage = Math.min(userPage, totalUserPages);
+  const paginatedUsers = filtered.slice((currentUserPage - 1) * usersPerPage, currentUserPage * usersPerPage);
+  useEffect(() => { setUserPage(1); }, [search, filtroRol, filtroEstado]);
+  useEffect(() => { setUserPage(page => Math.min(page, totalUserPages)); }, [totalUserPages]);
 
   const handleSave = async (usuario) => {
     const changedOwnPassword = usuario.id === user?.id && Boolean(usuario.password);
@@ -629,11 +765,11 @@ export default function ControlAcceso() {
                     <Shield size={28} color="#DEE2E6" style={{ display: 'block', margin: '0 auto 10px' }} />
                     No se encontraron operadores
                   </td></tr>
-                ) : filtered.map((u, i) => {
+                ) : paginatedUsers.map((u, i) => {
                   const rolCfg = currentRolesConfig[u.rol] || { modulos: [] };
                   const isCurrentUser = u.id === user?.id;
                   return (
-                    <tr key={u.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid #F3F4F6' : 'none', transition: 'background 0.1s' }}
+                    <tr key={u.id} style={{ borderBottom: i < paginatedUsers.length - 1 ? '1px solid #F3F4F6' : 'none', transition: 'background 0.1s' }}
                       onMouseEnter={e => e.currentTarget.style.background = '#FAFBFF'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <td data-label="Operador" style={{ padding: '12px 16px' }}>
@@ -688,6 +824,19 @@ export default function ControlAcceso() {
               </tbody>
             </table>
           </div>
+          {filtered.length > 0 && (
+            <nav className="evaluation-pagination" aria-label="Paginación de usuarios">
+              <p className="evaluation-pagination-summary">Mostrando <strong>{(currentUserPage - 1) * usersPerPage + 1}–{Math.min(currentUserPage * usersPerPage, filtered.length)}</strong> de {filtered.length} usuarios</p>
+              <div className="evaluation-pagination-controls">
+                <button type="button" disabled={currentUserPage === 1} aria-label="Página anterior" onClick={() => setUserPage(currentUserPage - 1)}>‹</button>
+                {Array.from({ length: Math.min(5, totalUserPages) }, (_, index) => Math.max(1, Math.min(currentUserPage - 2, totalUserPages - 4)) + index).map(page => (
+                  <button type="button" key={page} aria-label={`Ir a la página ${page}`} aria-current={page === currentUserPage ? 'page' : undefined} onClick={() => setUserPage(page)}>{page}</button>
+                ))}
+                <button type="button" disabled={currentUserPage === totalUserPages} aria-label="Página siguiente" onClick={() => setUserPage(currentUserPage + 1)}>›</button>
+              </div>
+              <p className="evaluation-pagination-position" aria-live="polite">Página {currentUserPage} de {totalUserPages}</p>
+            </nav>
+          )}
         </>
       )}
 
@@ -710,109 +859,111 @@ export default function ControlAcceso() {
             </div>
           </div>
 
-          {/* Tabla de permisos */}
-          <div className="permissions-table-wrap" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '10px', overflow: 'auto', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-            <table className="permissions-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1180px', tableLayout: 'auto' }}>
-              <thead>
-                <tr style={{ background: '#F8F9FA' }}>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: '800', color: '#6C757D', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #E5E7EB', minWidth: '190px' }}>ROL</th>
-                  {MODULOS_LIST.map(m => (
-                    <th key={m.key} title={m.label} style={{ padding: '12px 10px', textAlign: 'center', fontSize: '10px', lineHeight: 1.25, fontWeight: '800', color: '#6C757D', textTransform: 'uppercase', letterSpacing: '0.65px', borderBottom: '1px solid #E5E7EB', minWidth: m.key === 'admision' || m.key === 'asesores' ? 135 : 105, whiteSpace: 'normal', overflowWrap: 'normal' }}>{m.label}</th>
+          <div className="access-roles-scroll">
+            {/* Tabla de permisos */}
+            <div className="permissions-table-wrap" style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '10px', overflow: 'auto', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+              <table className="permissions-table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1180px', tableLayout: 'auto' }}>
+                <thead>
+                  <tr style={{ background: '#F8F9FA' }}>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '10px', fontWeight: '800', color: '#6C757D', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #E5E7EB', minWidth: '190px' }}>ROL</th>
+                    {MODULOS_LIST.map(m => (
+                      <th key={m.key} title={m.label} style={{ padding: '12px 10px', textAlign: 'center', fontSize: '10px', lineHeight: 1.25, fontWeight: '800', color: '#6C757D', textTransform: 'uppercase', letterSpacing: '0.65px', borderBottom: '1px solid #E5E7EB', minWidth: m.key === 'admision' || m.key === 'asesores' ? 135 : 105, whiteSpace: 'normal', overflowWrap: 'normal' }}>{m.label}</th>
+                    ))}
+                    <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '10px', fontWeight: '800', color: '#6C757D', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #E5E7EB', minWidth: 220 }}>ACCIONES</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(currentRolesConfig).map(([rolKey, rolCfg], i, arr) => (
+                    <tr key={rolKey} style={{ borderBottom: i < arr.length - 1 ? '1px solid #F3F4F6' : 'none', background: editingRol === rolKey ? '#FAFBFF' : 'transparent' }}>
+                      <td data-label="Rol" className="permission-role" style={{ padding: '14px 16px' }}>
+                        <RoleBadge rol={rolKey} rolesConfig={currentRolesConfig} />
+                        {rolKey === 'ASESOR' && <div style={{ fontSize: 10, color: '#059669', fontWeight: 800, marginTop: 5 }}>SOLO APLICATIVO MÓVIL</div>}
+                        <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '3px' }}>
+                          {localUsuarios.filter(u => u.rol === rolKey).length} usuario{localUsuarios.filter(u => u.rol === rolKey).length !== 1 ? 's' : ''}
+                        </div>
+                      </td>
+                      {MODULOS_LIST.map(m => {
+                        const tiene = rolCfg.modulos.includes(m.key);
+                        const mobileOnly = rolKey === 'ASESOR';
+                        return (
+                          <td key={m.key} data-label={m.label} className="permission-module" style={{ padding: '14px 10px', textAlign: 'center' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: mobileOnly ? '#F3F4F6' : tiene ? 'rgba(5,150,105,0.1)' : 'rgba(220,38,38,0.06)', color: mobileOnly ? '#9CA3AF' : tiene ? '#059669' : '#DC2626' }}>
+                              {mobileOnly ? <span title="No aplica: acceso exclusivo desde la app móvil" style={{ color: '#9CA3AF', fontWeight: 800 }}>—</span> : tiene ? <Check size={12} strokeWidth={2.5} /> : <X size={12} strokeWidth={2.5} />}
+                            </div>
+                          </td>
+                        );
+                      })}
+                      <td data-label="Acciones" className="permission-actions" style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        {rolKey === 'ASESOR' ? <span style={{ display: 'inline-flex', padding: '6px 10px', borderRadius: 20, color: '#059669', background: 'rgba(5,150,105,0.1)', fontSize: 10, fontWeight: 800 }}>PERMISOS EN APP</span> :
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            <button onClick={() => setEditingRol(editingRol === rolKey ? null : rolKey)}
+                              style={{ ...S.btnGhost, padding: '5px 10px', fontSize: '11px', fontWeight: '700', color: '#0B22A1', borderColor: '#0B22A1', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Edit2 size={11} /> Permisos
+                            </button>
+                            <button onClick={() => setRolModal({ mode: 'edit', rolKey, rolData: { label: rolCfg.label, descripcion: rolCfg.descripcion || '', color: rolCfg.color, bg: rolCfg.bg, modulos: rolCfg.modulos } })}
+                              style={{ ...S.btnGhost, padding: '5px 10px', fontSize: '11px', fontWeight: '700', color: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Edit2 size={11} /> Editar
+                            </button>
+                            <button onClick={() => resetRolPermisos(rolKey)} title="Restaurar permisos"
+                              style={{ ...S.iconBtn, color: '#D97706', border: '1px solid #DEE2E6' }}>
+                              <RotateCcw size={12} />
+                            </button>
+                            {!ROLES_CONFIG[rolKey] && (
+                              <button onClick={() => setConfirmDelete({ type: 'role', rolKey, label: rolCfg.label })}
+                                style={{ ...S.iconBtn, color: '#DC2626', border: '1px solid #DEE2E6' }}>
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
+                        }
+                      </td>
+                    </tr>
                   ))}
-                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '10px', fontWeight: '800', color: '#6C757D', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #E5E7EB', minWidth: 220 }}>ACCIONES</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(currentRolesConfig).map(([rolKey, rolCfg], i, arr) => (
-                  <tr key={rolKey} style={{ borderBottom: i < arr.length - 1 ? '1px solid #F3F4F6' : 'none', background: editingRol === rolKey ? '#FAFBFF' : 'transparent' }}>
-                    <td data-label="Rol" className="permission-role" style={{ padding: '14px 16px' }}>
-                      <RoleBadge rol={rolKey} rolesConfig={currentRolesConfig} />
-                      {rolKey === 'ASESOR' && <div style={{ fontSize: 10, color: '#059669', fontWeight: 800, marginTop: 5 }}>SOLO APLICATIVO MÓVIL</div>}
-                      <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '3px' }}>
-                        {localUsuarios.filter(u => u.rol === rolKey).length} usuario{localUsuarios.filter(u => u.rol === rolKey).length !== 1 ? 's' : ''}
-                      </div>
-                    </td>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Editor inline de permisos */}
+            {editingRol && currentRolesConfig[editingRol] && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <ChevronRight size={14} color="#0B22A1" />
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#0B22A1', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                    Editando permisos — {currentRolesConfig[editingRol].label}
+                  </span>
+                </div>
+                <RolPermisoEditor
+                  key={editingRol}
+                  rolKey={editingRol}
+                  rolCfg={currentRolesConfig[editingRol]}
+                  onSave={(mods) => handleSavePermisos(editingRol, mods)}
+                  onCancel={() => setEditingRol(null)}
+                />
+              </div>
+            )}
+
+            {/* Tarjetas resumen por rol */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px', marginTop: '4px' }}>
+              {Object.entries(currentRolesConfig).map(([rolKey, rolCfg]) => (
+                <div key={rolKey} style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '10px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <RoleBadge rol={rolKey} rolesConfig={currentRolesConfig} />
+                    <span style={{ fontSize: '11px', color: '#6C757D' }}>{rolCfg.modulos.length}/{MODULOS_LIST.length} módulos</span>
+                  </div>
+                  <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#6C757D', lineHeight: '1.5' }}>{rolCfg.descripcion}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                     {MODULOS_LIST.map(m => {
                       const tiene = rolCfg.modulos.includes(m.key);
-                      const mobileOnly = rolKey === 'ASESOR';
                       return (
-                        <td key={m.key} data-label={m.label} className="permission-module" style={{ padding: '14px 10px', textAlign: 'center' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '6px', background: mobileOnly ? '#F3F4F6' : tiene ? 'rgba(5,150,105,0.1)' : 'rgba(220,38,38,0.06)', color: mobileOnly ? '#9CA3AF' : tiene ? '#059669' : '#DC2626' }}>
-                            {mobileOnly ? <span title="No aplica: acceso exclusivo desde la app móvil" style={{ color: '#9CA3AF', fontWeight: 800 }}>—</span> : tiene ? <Check size={12} strokeWidth={2.5} /> : <X size={12} strokeWidth={2.5} />}
-                          </div>
-                        </td>
+                        <span key={m.key} style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '12px', color: tiene ? rolCfg.color : '#C9CED6', background: tiene ? rolCfg.bg : '#F3F4F6', textTransform: 'uppercase' }}>
+                          {m.label}
+                        </span>
                       );
                     })}
-                    <td data-label="Acciones" className="permission-actions" style={{ padding: '14px 16px', textAlign: 'center' }}>
-                      {rolKey === 'ASESOR' ? <span style={{ display: 'inline-flex', padding: '6px 10px', borderRadius: 20, color: '#059669', background: 'rgba(5,150,105,0.1)', fontSize: 10, fontWeight: 800 }}>PERMISOS EN APP</span> :
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                        <button onClick={() => setEditingRol(editingRol === rolKey ? null : rolKey)}
-                          style={{ ...S.btnGhost, padding: '5px 10px', fontSize: '11px', fontWeight: '700', color: '#0B22A1', borderColor: '#0B22A1', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Edit2 size={11} /> Permisos
-                        </button>
-                        <button onClick={() => setRolModal({ mode: 'edit', rolKey, rolData: { label: rolCfg.label, descripcion: rolCfg.descripcion || '', color: rolCfg.color, bg: rolCfg.bg, modulos: rolCfg.modulos } })}
-                          style={{ ...S.btnGhost, padding: '5px 10px', fontSize: '11px', fontWeight: '700', color: '#059669', borderColor: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Edit2 size={11} /> Editar
-                        </button>
-                        <button onClick={() => resetRolPermisos(rolKey)} title="Restaurar permisos"
-                          style={{ ...S.iconBtn, color: '#D97706', border: '1px solid #DEE2E6' }}>
-                          <RotateCcw size={12} />
-                        </button>
-                        {!ROLES_CONFIG[rolKey] && (
-                          <button onClick={() => setConfirmDelete({ type: 'role', rolKey, label: rolCfg.label })}
-                            style={{ ...S.iconBtn, color: '#DC2626', border: '1px solid #DEE2E6' }}>
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                      }
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Editor inline de permisos */}
-          {editingRol && currentRolesConfig[editingRol] && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                <ChevronRight size={14} color="#0B22A1" />
-                <span style={{ fontSize: '12px', fontWeight: '700', color: '#0B22A1', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                  Editando permisos — {currentRolesConfig[editingRol].label}
-                </span>
-              </div>
-              <RolPermisoEditor
-                key={editingRol}
-                rolKey={editingRol}
-                rolCfg={currentRolesConfig[editingRol]}
-                onSave={(mods) => handleSavePermisos(editingRol, mods)}
-                onCancel={() => setEditingRol(null)}
-              />
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-
-          {/* Tarjetas resumen por rol */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px', marginTop: '4px' }}>
-            {Object.entries(currentRolesConfig).map(([rolKey, rolCfg]) => (
-              <div key={rolKey} style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '10px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <RoleBadge rol={rolKey} rolesConfig={currentRolesConfig} />
-                  <span style={{ fontSize: '11px', color: '#6C757D' }}>{rolCfg.modulos.length}/{MODULOS_LIST.length} módulos</span>
-                </div>
-                <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#6C757D', lineHeight: '1.5' }}>{rolCfg.descripcion}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                  {MODULOS_LIST.map(m => {
-                    const tiene = rolCfg.modulos.includes(m.key);
-                    return (
-                      <span key={m.key} style={{ fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '12px', color: tiene ? rolCfg.color : '#C9CED6', background: tiene ? rolCfg.bg : '#F3F4F6', textTransform: 'uppercase' }}>
-                        {m.label}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -914,7 +1065,7 @@ export default function ControlAcceso() {
 
       {/* ════ TAB: AUDITORÍA ════════════════════════════════ */}
       {tab === 'auditoria' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="access-audit-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '10px', padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
             <h3 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: '800', color: '#212529' }}>Registro de Accesos y Cambios</h3>
             <p style={{ margin: '0 0 20px', fontSize: '12px', color: '#6C757D' }}>Historial de operaciones críticas del sistema</p>
