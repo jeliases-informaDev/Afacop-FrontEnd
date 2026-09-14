@@ -249,8 +249,8 @@ export default function Clientes() {
         <table>
           <thead>
             <tr>
-              <th>Cliente</th><th>DNI / Teléfono</th><th>Dirección / Distrito</th>
-              <th>Deuda</th><th>Estado</th><th>Última Gestión</th><th>Acciones</th>
+              <th>DNI</th><th>Cliente</th><th>Dirección</th>
+              <th>Deuda</th><th>Estado</th><th>Estado Gestion</th><th>Última Gestión</th>
             </tr>
           </thead>
           <tbody>

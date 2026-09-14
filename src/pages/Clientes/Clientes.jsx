@@ -184,6 +184,16 @@ export default function Clientes() {
   const [showImportGuide, setShowImportGuide] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [importingClients, setImportingClients] = useState(false);
+  const [importMode, setImportMode] = useState('CARGA_MENSUAL');
+
+  const [importPeriod, setImportPeriod] = useState(() => {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+
+    return `${year}-${month}`;
+  });
 
   const gestiones = selectedClient?.gestiones ?? [];
 
@@ -263,7 +273,13 @@ export default function Clientes() {
     setImportingClients(true);
 
     const formData = new FormData();
+
     formData.append('file', file);
+    formData.append('modo', importMode);
+    formData.append(
+      'periodo',
+      importPeriod.replace('-', '')
+    );
 
     try {
       const response = await radarApi.post('/api/importaciones/clientes', formData);
@@ -524,7 +540,7 @@ export default function Clientes() {
                 <span className="client-import-step-number">1</span>
                 <div>
                   <h3>Descarga la plantilla vacía</h3>
-                  <p>Incluye las 17 cabeceras compatibles, formatos, campos obligatorios y una hoja de instrucciones.</p>
+                  <p>Incluye las 11 cabeceras compatibles, formatos, campos obligatorios y una hoja de instrucciones.</p>
                   <button type="button" className="btn btn-outline client-template-button" disabled={downloadingTemplate || importingClients} onClick={downloadClientTemplate}>
                     <Download size={18} /> {downloadingTemplate ? 'Generando plantilla…' : 'Descargar plantilla Excel'}
                   </button>
@@ -537,6 +553,66 @@ export default function Clientes() {
                   {CLIENT_REQUIRED_HEADERS.map(column => <span key={column}>{column}</span>)}
                 </div>
                 <small>* Campos obligatorios. No cambies el nombre de las cabeceras.</small>
+              </div>
+
+                <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '16px',
+                  marginBottom: '20px',
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    Tipo de importación
+                  </label>
+
+                  <select
+                    className="form-input"
+                    value={importMode}
+                    disabled={importingClients}
+                    onChange={e => setImportMode(e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="CARGA_MENSUAL">
+                      Carga mensual
+                    </option>
+
+                    <option value="ACTUALIZACION">
+                      Actualización
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    Periodo
+                  </label>
+
+                  <input
+                    type="month"
+                    className="form-input"
+                    value={importPeriod}
+                    disabled={importingClients}
+                    onChange={e => setImportPeriod(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </div>
 
               <section className="client-import-step">
