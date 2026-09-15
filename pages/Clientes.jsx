@@ -249,8 +249,8 @@ export default function Clientes() {
         <table>
           <thead>
             <tr>
-              <th>Cliente</th><th>DNI / Teléfono</th><th>Dirección / Distrito</th>
-              <th>Deuda</th><th>Estado</th><th>Última Gestión</th><th>Acciones</th>
+              <th>DNI</th><th>Cliente</th><th>Dirección</th>
+              <th>Deuda</th><th>Estado</th><th>Estado Gestion</th><th>Última Gestión</th>
             </tr>
           </thead>
           <tbody>
@@ -269,10 +269,14 @@ export default function Clientes() {
                 <td>
                   <div className="font-bold">{c.nombres} {c.apellidos}</div>
                 </td>
-                <td><div>{c.dni}</div><div className="text-sm text-muted">{c.telefono}</div></td>
+                <td><div>{c.numero_documento}</div></td>
                 <td>
                   <div className="text-sm">{c.direccion}</div>
                   <span className="badge badge-activo" style={{ fontSize: '10px' }}>{c.distrito}</span>
+                </td>
+                <td>
+                  <div className="font-bold" style={{ whiteSpace: 'nowrap' }}>S/ {parseFloat(c.deuda_cliente || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  <div className="text-xs text-danger" style={{ whiteSpace: 'nowrap', fontSize: '11px', marginTop: '2px' }}>{c.dias_retraso} días retraso</div>
                 </td>
                 <td>
                   <div className="font-bold" style={{ whiteSpace: 'nowrap' }}>S/ {parseFloat(c.deuda_total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>

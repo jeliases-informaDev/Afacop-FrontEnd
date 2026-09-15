@@ -11,12 +11,12 @@ import {
 
 // Mapa de estado → color (Premium Light Theme)
 const ESTADO_COLORS = {
-  LIBRE: { bg: '#E8F5E9', text: '#2E7D32', label: 'LIBRE' },
-  EN_VISITA: { bg: '#FFF3E0', text: '#EF6C00', label: 'EN CAMINO' },
-  VISITADO_PAGO: { bg: '#E3F2FD', text: '#1565C0', label: 'GESTIONADO' },
-  REPROGRAMADO: { bg: '#F3E5F5', text: '#7B1FA2', label: 'REPROGRAMADO' },
-  NO_ENCONTRADO: { bg: '#FFEBEE', text: '#C62828', label: 'NO ENCONTRADO' },
-  NO_ECONTRADO: { bg: '#FFEBEE', text: '#C62828', label: 'NO ENCONTRADO (TYPO)' },
+  LIBRE: {bg: '#F1F5F9',text: '#334155',label: 'LIBRE',},
+  EN_VISITA: {bg: '#DBEAFE',text: '#2563EB',label: 'ASIGNADO',},
+  GESTIONADO: {  bg: '#D1FAE5',text: '#10B981',label: 'GESTIONADO',},
+  REPROGRAMADO: {bg: '#FEF3C7',text: '#F59E0B',label: 'REPROGRAMADO',},
+  NO_ENCONTRADO: {bg: '#FEE2E2',text: '#EF4444',label: 'NO ENCONTRADO',
+  },
 };
 
 const escapeHtml = value => String(value ?? '—')
@@ -174,7 +174,7 @@ export default function Clientes() {
   const [filters, setFilters] = useState({
     search: '',
     distrito: '',
-    estado: '',
+    estado_gestion: '',
     fecha_pago: ''
   });
   const [selectedClient, setSelectedClient] = useState(null);
@@ -184,6 +184,16 @@ export default function Clientes() {
   const [showImportGuide, setShowImportGuide] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [importingClients, setImportingClients] = useState(false);
+  const [importMode, setImportMode] = useState('CARGA_MENSUAL');
+
+  const [importPeriod, setImportPeriod] = useState(() => {
+    const now = new Date();
+
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+
+    return `${year}-${month}`;
+  });
 
   const gestiones = selectedClient?.gestiones ?? [];
 
@@ -263,7 +273,13 @@ export default function Clientes() {
     setImportingClients(true);
 
     const formData = new FormData();
+
     formData.append('file', file);
+    formData.append('modo', importMode);
+    formData.append(
+      'periodo',
+      importPeriod.replace('-', '')
+    );
 
     try {
       const response = await radarApi.post('/api/importaciones/clientes', formData);
@@ -294,7 +310,7 @@ export default function Clientes() {
         errores: job.errores
       });
 
-      setFilters({ search: '', distrito: '', estado: '', fecha_pago: '' });
+      setFilters({ search: '', distrito: '', estado_gestion: '', fecha_pago: '' });
       setPagination(prev => ({ ...prev, page: 1 }));
     } catch (err) {
       console.error('Error importing Excel:', err);
@@ -381,15 +397,14 @@ export default function Clientes() {
             />
           </div>
           <ClientFilterSelect
-            value={filters.estado}
-            onChange={value => handleFilterChange({ target: { name: 'estado', value } })}
+            value={filters.estado_gestion}
+            onChange={value => handleFilterChange({ target: { name: 'estado_gestion', value } })}
             ariaLabel="Filtrar por gestión"
             options={[
               { value: '', label: 'Todas las gestiones' },
-              { value: 'SIN_GESTION', label: 'Sin gestión' },
               { value: 'LIBRE', label: 'Libre' },
               { value: 'EN_VISITA', label: 'Asignado' },
-              { value: 'VISITADO_PAGO', label: 'Gestionado' },
+              { value: 'GESTIONADO', label: 'Gestionado' },
               { value: 'REPROGRAMADO', label: 'Reprogramado' },
               { value: 'NO_ENCONTRADO', label: 'No encontrado' }
             ]}
@@ -414,87 +429,80 @@ export default function Clientes() {
           </div>
         </div>
 
-        {/* TABLA */}
-        <div className="table-wrap clients-table-wrap">
-          <table className="clients-table">
-            <thead>
-              <tr>
-                <th>Cliente</th><th>DNI</th><th>Teléfono</th><th>Dirección / Distrito</th>
-                <th>Deuda</th><th>Estado</th><th>Última Gestión</th>
+
+      
+
+      {/* TABLA */}
+      <div className="table-wrap clients-table-wrap">
+        <table className="clients-table">
+          <thead>
+            <tr>
+              <th>DNI</th><th>Cliente</th><th>Dirección</th><th>Saldo</th>
+              <th>Deuda</th><th>Estado</th><th>Estado Gestión</th><th>Última Gestión</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr className="clients-loading-row"><td colSpan="8" className="text-center"><div className="spinner"></div></td></tr>
+            ) : clients.length === 0 ? (
+              <tr className="clients-empty-row">
+                <td colSpan="8">
+                  <div className="clients-empty-state">
+                    <div className="clients-empty-icon"><UserX size={26} strokeWidth={1.8} /></div>
+                    <strong>{filters.search || filters.estado_gestion || filters.distrito ? 'No encontramos coincidencias' : 'Aún no hay clientes registrados'}</strong>
+                    <p>
+                      {filters.search || filters.estado_gestion || filters.distrito
+                        ? 'Prueba modificando la búsqueda o limpiando los filtros seleccionados.'
+                        : 'Los clientes aparecerán aquí cuando sean registrados o importados.'}
+                    </p>
+                    {(filters.search || filters.estado_gestion || filters.distrito) && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost clients-empty-action"
+                        onClick={() => {
+                          setFilters(prev => ({ ...prev, search: '', estado_gestion: '', distrito: '' }));
+                          setPagination(prev => ({ ...prev, page: 1 }));
+                        }}
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr className="clients-loading-row">
-                  <td colSpan="7">
-                    <div className="clients-loading-state" role="status" aria-live="polite">
-                      <p>Cargando clientes…</p>
-                      <div className="clients-loading-skeleton" aria-hidden="true">
-                        {Array.from({ length: 6 }, (_, row) => (
-                          <div className="clients-loading-placeholder" key={row}>
-                            <span /><span /><span /><span />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : clients.length === 0 ? (
-                <tr className="clients-empty-row">
-                  <td colSpan="6">
-                    <div className="clients-empty-state">
-                      <div className="clients-empty-icon"><UserX size={26} strokeWidth={1.8} /></div>
-                      <strong>{filters.search || filters.estado || filters.distrito ? 'No encontramos coincidencias' : 'Aún no hay clientes registrados'}</strong>
-                      <p>
-                        {filters.search || filters.estado || filters.distrito
-                          ? 'Prueba modificando la búsqueda o limpiando los filtros seleccionados.'
-                          : 'Los clientes aparecerán aquí cuando sean registrados o importados.'}
-                      </p>
-                      {(filters.search || filters.estado || filters.distrito) && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost clients-empty-action"
-                          onClick={() => {
-                            setFilters(prev => ({ ...prev, search: '', estado: '', distrito: '' }));
-                            setPagination(prev => ({ ...prev, page: 1 }));
-                          }}
-                        >
-                          Limpiar filtros
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ) : clients.map((c, index) => (
-                <tr
-                  key={c.id}
-                  style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.02)'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                  onClick={() => handleShowDetail(c)}
-                >
-                  <td data-label="Cliente">
-                    <div className="font-bold">{c.nombres} {c.apellidos}</div>
-                  </td>
-                  <td data-label="DNI"><div className="text-sm text-muted">{c.dni || 'Sin DNI'}</div></td>
-
-                  <td data-label="Teléfono"><div className="text-sm text-muted">{c.telefono || 'Sin teléfono'}</div></td>
-
-                  <td data-label="Dirección / Distrito">
-                    <div className="text-sm">{c.direccion}</div>
-                    <span className="badge badge-activo" style={{ fontSize: '10px' }}>{c.distrito}</span>
-                  </td>
-                  <td data-label="Deuda">
-                    <div className="font-bold" style={{ whiteSpace: 'nowrap' }}>S/ {parseFloat(c.deuda_total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                    <div className="text-xs text-danger" style={{ whiteSpace: 'nowrap', fontSize: '11px', marginTop: '2px' }}>{c.dias_retraso} días retraso</div>
-                  </td>
-                  <td data-label="Estado"><EstadoBadge estado={c.estado || 'LIBRE'} /></td>
-                  <td data-label="Última gestión">{c.fecha_gestion ? new Date(c.fecha_gestion).toLocaleDateString('es-PE') : 'Sin gestión'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ) : clients.map((c, index) => (
+              <tr
+                key={c.id}
+                style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                onClick={() => handleShowDetail(c)}
+              >
+                <td data-label="DNI"><div>{c.numero_documento || '—'}</div></td>
+                <td data-label="Cliente">
+                  <div className="font-bold">{c.nombres} {c.apellidos}</div>
+                </td>
+              
+                <td data-label="Dirección / Distrito">
+                  <div className="text-sm">{c.direccion}</div>
+                  <span className="badge badge-activo" style={{ fontSize: '10px' }}>{c.distrito}</span>
+                </td>
+                <td data-label="Saldo">
+                  <div className="font-bold" style={{ whiteSpace: 'nowrap' }}>S/ {parseFloat(c.deuda_cliente || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  <div className="text-xs text-danger" style={{ whiteSpace: 'nowrap', fontSize: '11px', marginTop: '2px' }}>{c.dias_retraso} días retraso</div>
+                </td>
+                <td data-label="Deuda">
+                  <div className="font-bold" style={{ whiteSpace: 'nowrap' }}>S/ {parseFloat(c.deuda_total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  <div className="text-xs text-danger" style={{ whiteSpace: 'nowrap', fontSize: '11px', marginTop: '2px' }}>{c.dias_retraso} días retraso</div>
+                </td>
+                <td data-label="Estado"><EstadoBadge estado={c.estado || 'LIBRE'} /></td>
+                <td data-label="Estado gestión"><EstadoBadge estado={c.estado_gestion || 'LIBRE'} /></td>
+                <td data-label="Última gestión">{c.fecha_gestion ? new Date(c.fecha_gestion).toLocaleDateString('es-PE') : 'Sin gestión'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
         {/* PAGINACIÓN */}
         {!loading && clients.length > 0 && pagination.totalPages > 1 && (
@@ -532,7 +540,7 @@ export default function Clientes() {
                 <span className="client-import-step-number">1</span>
                 <div>
                   <h3>Descarga la plantilla vacía</h3>
-                  <p>Incluye las 17 cabeceras compatibles, formatos, campos obligatorios y una hoja de instrucciones.</p>
+                  <p>Incluye las 11 cabeceras compatibles, formatos, campos obligatorios y una hoja de instrucciones.</p>
                   <button type="button" className="btn btn-outline client-template-button" disabled={downloadingTemplate || importingClients} onClick={downloadClientTemplate}>
                     <Download size={18} /> {downloadingTemplate ? 'Generando plantilla…' : 'Descargar plantilla Excel'}
                   </button>
@@ -545,6 +553,66 @@ export default function Clientes() {
                   {CLIENT_REQUIRED_HEADERS.map(column => <span key={column}>{column}</span>)}
                 </div>
                 <small>* Campos obligatorios. No cambies el nombre de las cabeceras.</small>
+              </div>
+
+                <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '16px',
+                  marginBottom: '20px',
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    Tipo de importación
+                  </label>
+
+                  <select
+                    className="form-input"
+                    value={importMode}
+                    disabled={importingClients}
+                    onChange={e => setImportMode(e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="CARGA_MENSUAL">
+                      Carga mensual
+                    </option>
+
+                    <option value="ACTUALIZACION">
+                      Actualización
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    Periodo
+                  </label>
+
+                  <input
+                    type="month"
+                    className="form-input"
+                    value={importPeriod}
+                    disabled={importingClients}
+                    onChange={e => setImportPeriod(e.target.value)}
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </div>
 
               <section className="client-import-step">
