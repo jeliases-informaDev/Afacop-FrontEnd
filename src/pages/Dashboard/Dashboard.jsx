@@ -36,10 +36,9 @@ const activityLabels = {
   REPROGRAMADO: 'Visita reprogramada', REPROGRAMARA: 'Visita por reprogramar', GESTIONADO: 'Gestión registrada',
 };
 const getActivityLabel = value => activityLabels[value] || String(value || 'Gestión registrada').replace(/_/g, ' ').toLowerCase();
-
 /* ════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-  const { radarApi, sedeActual } = useContext(AuthContext);
+  const { radarApi, sedeActual, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [actividad, setActividad] = useState([]);
@@ -167,7 +166,11 @@ export default function Dashboard() {
       Icon: Wallet, bgColor: 'linear-gradient(135deg, #059669, #34D399)', shadowColor: '#34D399',
     },
     { label: 'Asesores en Campo', value: stats.workersActivos, sub: 'Operativos ahora', Icon: Activity, bgColor: 'linear-gradient(135deg, #D97706, #FACC15)', shadowColor: '#FACC15' },
-    { label: 'Rutas del Día', value: stats.rutasHoy, sub: 'Programadas y en curso', Icon: MapIcon, bgColor: 'linear-gradient(135deg, #DC2626, #F87171)', shadowColor: '#F87171', onClick: () => navigate('/rutas') },
+    {
+      label: 'Rutas del Día', value: stats.rutasHoy, sub: 'Programadas y en curso', Icon: MapIcon,
+      bgColor: 'linear-gradient(135deg, #DC2626, #F87171)', shadowColor: '#F87171',
+      onClick: user?.rol === 'GERENTE' ? undefined : () => navigate('/rutas'),
+    },
   ];
 
   return (
@@ -189,9 +192,11 @@ export default function Dashboard() {
           <button type="button" style={{ ...S.btnPrimary, flex: 1, justifyContent: 'center' }} onClick={() => navigate('/admision')}>
             <TrendingUp size={16} /> Nueva Evaluación
           </button>
-          <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/rutas')}>
-            <Route size={16} /> Rutas del Día
-          </button>
+          {user?.rol !== 'GERENTE' && (
+            <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/rutas')}>
+              <Route size={16} /> Rutas del Día
+            </button>
+          )}
           <button type="button" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/map')}>
             <MapPin size={16} /> Ver en Mapa
           </button>
@@ -243,15 +248,19 @@ export default function Dashboard() {
               <h3 style={S.cardTitle}>Actividad reciente</h3>
               <p style={S.cardSub}>Últimas gestiones registradas en campo</p>
             </div>
-            <button
-              className="btn-outline"
-              onClick={() => setShowExportModal(true)}
-              disabled={actividad.length === 0}
-              title={actividad.length === 0 ? 'La exportación se habilitará cuando exista actividad registrada' : 'Exportar historial de actividad'}
-              style={actividad.length === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-            >
-              <Download size={14} /> Exportar
-            </button>
+
+            {user?.rol !== 'GERENTE' && (
+
+              <button
+                className="btn-outline"
+                onClick={() => setShowExportModal(true)}
+                disabled={actividad.length === 0}
+                title={actividad.length === 0 ? 'La exportación se habilitará cuando exista actividad registrada' : 'Exportar historial de actividad'}
+                style={actividad.length === 0 ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+              >
+                <Download size={14} /> Exportar
+              </button>
+            )}
           </div>
 
           {(() => {
