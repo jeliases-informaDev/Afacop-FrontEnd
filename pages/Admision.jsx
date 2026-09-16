@@ -394,6 +394,7 @@ export default function Admision() {
                         <div style={{ flex: 1, backgroundColor: '#EAB308', color: 'white', padding: '8px', fontSize: '12px', fontWeight: '600' }}>Deficiente</div>
                         <div style={{ flex: 1, backgroundColor: '#F97316', color: 'white', padding: '8px', fontSize: '12px', fontWeight: '600' }}>Dudoso</div>
                         <div style={{ flex: 1, backgroundColor: '#DC2626', color: 'white', padding: '8px', fontSize: '12px', fontWeight: '600' }}>Pérdida</div>
+                        <div style={{ flex: 1, backgroundColor: '#c7dc26', color: 'white', padding: '8px', fontSize: '12px', fontWeight: '600' }}>Reportan</div>
                       </div>
                       <div style={{ display: 'flex', width: '100%', padding: '12px 0', borderBottom: '1px solid var(--c-border)' }}>
                         <div style={{ flex: 1, textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: '#10B981' }}>● {evalResult.rating.normal}%</div>
@@ -401,6 +402,7 @@ export default function Admision() {
                         <div style={{ flex: 1, textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: '#EAB308' }}>● {evalResult.rating.deficiente}%</div>
                         <div style={{ flex: 1, textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: '#F97316' }}>● {evalResult.rating.dudoso}%</div>
                         <div style={{ flex: 1, textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: '#DC2626' }}>● {evalResult.rating.perdida}%</div>
+                        <div style={{ flex: 1, textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: '#2678dc' }}>● {evalResult.rating.reportan}%</div>
                       </div>
                       <div style={{ padding: '8px 16px', fontSize: '11px', color: 'var(--c-muted)' }}>
                         Cifras redondeadas. No se muestra información menor a 0.5%
