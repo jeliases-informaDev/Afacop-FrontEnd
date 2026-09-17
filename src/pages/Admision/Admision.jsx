@@ -3,6 +3,11 @@ import { createPortal } from 'react-dom';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import { ClipboardX } from 'lucide-react';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+import '@fontsource/inter/800.css';
 const FILAS_POR_PAGINA = 12;
 
 function AdmissionFilterSelect({ value, onChange, options, ariaLabel }) {
@@ -125,6 +130,49 @@ const formatPeriodo = (periodo) => {
   ];
 
   return `${meses[month - 1]} ${year}`;
+};
+
+const formatNombre = (texto) => {
+  if (!texto) return '—';
+
+  return String(texto)
+    .toLowerCase()
+    .replace(/\b\p{L}/gu, letra => letra.toUpperCase());
+};
+
+const formatEntidad = (texto) => {
+  if (!texto) return '—';
+
+  const conectores = new Set([
+    'de',
+    'del',
+    'la',
+    'las',
+    'los',
+    'y',
+    'e',
+    'en'
+  ]);
+
+  return String(texto)
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((palabra, index) => {
+      if (index > 0 && conectores.has(palabra)) {
+        return palabra;
+      }
+
+      if (palabra.length <= 2) {
+        return palabra.toUpperCase();
+      }
+
+      return (
+        palabra.charAt(0).toUpperCase() +
+        palabra.slice(1)
+      );
+    })
+    .join(' ');
 };
 
 const formatLinea = (linea) => {
@@ -341,48 +389,95 @@ export default function Admision() {
   }, [radarApi]);
 
   const handleBuscarSBS = async () => {
-  if (!dniSearch || dniSearch.length !== 8) return;
+    if (!dniSearch || dniSearch.length !== 8) return;
 
-  setLoadingEval(true);
-  setEvalResult(null);
-  setEvalError('');
+      setLoadingEval(true);
+      setEvalResult(null);
+      setEvalError('');
+
+      try {
+        const response = await radarApi.get(
+          `/api/admision/evaluar/${dniSearch}`
+        );
+
+        setEvalResult(response.data.data);
+      } catch (err) {
+        console.error(
+          'Error consultando evaluación crediticia:',
+          err
+        );
+
+      const status = err.response?.status;
+
+      if (status === 404) {
+        setEvalError(
+          'No se encontró información crediticia para el DNI consultado.'
+        );
+      } else if (status === 401) {
+        setEvalError(
+          'La sesión ha expirado o no cuenta con autenticación válida.'
+        );
+      } else if (status === 403) {
+        setEvalError(
+          'No cuenta con permisos para realizar esta consulta.'
+        );
+      } else {
+        setEvalError(
+          err.response?.data?.message ||
+          err.response?.data?.mensaje ||
+          err.response?.data?.error ||
+          'No se pudo realizar la consulta crediticia.'
+        );
+      }
+    } finally {
+      setLoadingEval(false);
+    }
+  };
+
+  const handleExportarPdf = async () => {
+  if (!evalResult) return;
 
   try {
-    const response = await radarApi.get(
-      `/api/admision/evaluar/${dniSearch}`
+    const response = await radarApi.post(
+      '/api/admision/pdf',
+      {
+        evaluacion: evalResult,
+      },
+      {
+        responseType: 'blob',
+      }
     );
 
-    setEvalResult(response.data.data);
-  } catch (err) {
+    const pdfBlob = new Blob(
+      [response.data],
+      {
+        type: 'application/pdf',
+      }
+    );
+
+    const pdfUrl =
+      window.URL.createObjectURL(pdfBlob);
+
+    const link =
+      document.createElement('a');
+
+    link.href = pdfUrl;
+    link.download =
+      `calificacion_crediticia_${evalResult.dni}.pdf`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    window.URL.revokeObjectURL(pdfUrl);
+
+  } catch (error) {
     console.error(
-      'Error consultando evaluación crediticia:',
-      err
+      'Error exportando PDF:',
+      error
     );
-
-    const status = err.response?.status;
-
-    if (status === 404) {
-      setEvalError(
-        'No se encontró información crediticia para el DNI consultado.'
-      );
-    } else if (status === 401) {
-      setEvalError(
-        'La sesión ha expirado o no cuenta con autenticación válida.'
-      );
-    } else if (status === 403) {
-      setEvalError(
-        'No cuenta con permisos para realizar esta consulta.'
-      );
-    } else {
-      setEvalError(
-        err.response?.data?.message ||
-        err.response?.data?.mensaje ||
-        err.response?.data?.error ||
-        'No se pudo realizar la consulta crediticia.'
-      );
-    }
-  } finally {
-    setLoadingEval(false);
   }
 };
 
@@ -665,16 +760,35 @@ export default function Admision() {
             display: 'flex', justifyContent: 'center', alignItems: 'flex-start', zIndex: 9999, padding: '40px 20px', overflowY: 'auto'
           }}
         >
-          <div 
-            className="sbs-modal"
-            onClick={e => e.stopPropagation()}
-            style={{
-              backgroundColor: 'var(--c-surface)', borderRadius: '12px', width: '100%', maxWidth: '850px', maxHeight: '90vh', overflowY: 'auto',
-              display: 'flex', flexDirection: 'column', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: '1px solid var(--c-border)'
-            }}
-          >
+        <div 
+                className="sbs-modal"
+                onClick={e => e.stopPropagation()}
+                style={{
+                  backgroundColor: 'var(--c-surface)',
+                  borderRadius: '12px',
+                  width: '100%',
+                  maxWidth: '850px',
+                  maxHeight: '90vh',
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                  border: '1px solid var(--c-border)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
             <div className="sbs-modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--c-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--c-surface-2)', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--c-text)', margin: 0 }}>Consulta de calificación de personas</h2>
+              <h2
+                style={{
+                  fontSize: '19px',
+                  fontWeight: '700',
+                  color: 'var(--c-text)',
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Consulta de calificación de personas
+              </h2>
               <button 
                 onClick={() => setShowEvalModal(false)} 
                 style={{ 
@@ -761,8 +875,26 @@ export default function Admision() {
                   { key: 'perdida',   label: 'Pérdida',              color: '#DC2626', porcentaje: true },
                   { key: 'reportan',  label: 'Reportan',              color: '#2678dc', porcentaje: false },
                 ];
-                const thStyle = { padding: '8px 10px', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left', borderBottom: '1px solid var(--c-border)', whiteSpace: 'nowrap' };
-                const tdStyle = { padding: '8px 10px', fontSize: '12px', color: 'var(--c-text)', borderBottom: '1px solid var(--c-border)' };
+               const thStyle = {
+                  padding: '8px 10px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: 'var(--c-muted)',
+                  textTransform: 'none',
+                  letterSpacing: '-0.01em',
+                  textAlign: 'left',
+                  borderBottom: '1px solid var(--c-border)',
+                  whiteSpace: 'nowrap'
+                };
+
+                const tdStyle = {
+                  padding: '8px 10px',
+                  fontSize: '12px',
+                  fontWeight: '400',
+                  color: 'var(--c-text)',
+                  borderBottom: '1px solid var(--c-border)',
+                  letterSpacing: '-0.005em',
+                };
                 const inputStyle = { width: '100%', padding: '8px 10px', border: '1px solid var(--c-border)', borderRadius: '6px', fontSize: '13px', color: 'var(--c-text)', backgroundColor: 'var(--c-surface-2)', outline: 'none', boxSizing: 'border-box' };
                 const labelStyle = { fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px' };
                 const CALIFICACION_COLORS = {
@@ -780,16 +912,35 @@ export default function Admision() {
                 };
                               
                 return (
-                  <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div
+                  className="fade-in"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px'
+                  }}
+                >
 
-                    {/* Fila de metadatos */}
+                  {/* CONTENIDO QUE SE EXPORTARÁ AL PDF */}
                   <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '0.8fr 1.6fr 1.3fr 0.9fr',
-                      gap: '6px',
+                      style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '14px',
+                      backgroundColor: '#ffffff',
+                      padding: '16px',
+                      color: '#1f2937',
                     }}
                   >
+
+                    {/* Fila de metadatos */}
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '0.8fr 1.6fr 1.3fr 0.9fr',
+                        gap: '6px',
+                      }}
+                    >
                     {[
                       {
                         label: 'DNI',
@@ -797,7 +948,7 @@ export default function Admision() {
                       },
                       {
                         label: 'Nombre',
-                        value: evalResult.nombre
+                        value: formatNombre(evalResult.nombre)
                       },
                       {
                         label: 'Consulta',
@@ -860,8 +1011,8 @@ export default function Admision() {
 
                     {/* Calificación crediticia — barra compacta */}
                     <div className="sbs-rating-card" style={{ border: '1px solid var(--c-border)', borderRadius: '8px', overflow: 'hidden' }}>
-                      <div style={{ padding: '8px 14px', background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Calificación Crediticia
+                      <div style={{ padding: '8px 14px', background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'none', letterSpacing: '-0.01em' }}>
+                        Calificación crediticia
                       </div>
                       <div style={{ display: 'flex', height: 6 }}>
                         {RATING_COLS.map(c => (
@@ -883,8 +1034,8 @@ export default function Admision() {
 
                     {/* Detalle de deuda */}
                     <div className="sbs-result-section" style={{ border: '1px solid var(--c-border)', borderRadius: '8px', overflow: 'hidden' }}>
-                      <div style={{ padding: '8px 14px', background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Detalle de Deuda
+                      <div style={{ padding: '8px 14px', background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'none', letterSpacing: '-0.01em' }}>
+                        Detalle de deuda
                       </div>
                       <table
                         className="sbs-result-table sbs-debt-table"
@@ -958,7 +1109,7 @@ export default function Admision() {
                                       fontWeight: '600',
                                     }}
                                   >
-                                    {d.entidad}
+                                    {formatEntidad(d.entidad)}
                                   </td>
 
                                   <td
@@ -1046,7 +1197,7 @@ export default function Admision() {
                                   style={{
                                     ...tdStyle,
                                     textAlign: 'right',
-                                    fontWeight: '800',
+                                    fontWeight: '700',
                                     color: 'var(--c-text)',
                                   }}
                                 >
@@ -1058,7 +1209,7 @@ export default function Admision() {
                                   style={{
                                     ...tdStyle,
                                     textAlign: 'right',
-                                    fontWeight: '800',
+                                    fontWeight: '700',
                                     color: 'var(--c-text)',
                                   }}
                                 >
@@ -1081,8 +1232,19 @@ export default function Admision() {
 
                     {/* Líneas de crédito */}
                     <div className="sbs-result-section" style={{ border: '1px solid var(--c-border)', borderRadius: '8px', overflow: 'hidden' }}>
-                      <div style={{ padding: '8px 14px', background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Líneas de Crédito <span style={{ fontWeight: '400', textTransform: 'none', fontSize: '10px' }}>— otorgadas y no utilizadas</span>
+                      <div style={{ padding: '8px 14px', background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'none', letterSpacing: '-0.01em' }}>
+                        Líneas de crédito
+                        <span
+                          style={{
+                            fontWeight: '400',
+                            fontSize: '9.5px',
+                            color: 'var(--c-muted)',
+                            marginLeft: '4px',
+                            letterSpacing: '-0.005em',
+                          }}
+                        >
+                          — otorgadas y no utilizadas
+                        </span>
                       </div>
                       <table
                         className="sbs-result-table sbs-credit-table"
@@ -1094,11 +1256,11 @@ export default function Admision() {
                         <thead>
                           <tr>
                             <th style={thStyle}>
-                              Entidad Reportante
+                              Entidad reportante
                             </th>
 
                             <th style={thStyle}>
-                              Tipo de Línea
+                              Tipo de línea
                             </th>
 
                             <th
@@ -1107,7 +1269,7 @@ export default function Admision() {
                                 textAlign: 'right',
                               }}
                             >
-                              Línea Crédito
+                              Línea de crédito
                             </th>
 
                             <th
@@ -1116,7 +1278,7 @@ export default function Admision() {
                                 textAlign: 'right',
                               }}
                             >
-                              % Utilizado
+                              % utilizado
                             </th>
 
                             <th
@@ -1163,7 +1325,7 @@ export default function Admision() {
                                       fontWeight: '600',
                                     }}
                                   >
-                                    {l.entidad}
+                                    {formatEntidad(l.entidad)}
                                   </td>
 
                                   <td
@@ -1233,7 +1395,7 @@ export default function Admision() {
                                   style={{
                                     ...tdStyle,
                                     textAlign: 'right',
-                                    fontWeight: '800',
+                                    fontWeight: '700',
                                     color: 'var(--c-text)',
                                   }}
                                 >
@@ -1245,7 +1407,7 @@ export default function Admision() {
                                   style={{
                                     ...tdStyle,
                                     textAlign: 'right',
-                                    fontWeight: '800',
+                                    fontWeight: '700',
                                     color: 'var(--c-text)',
                                   }}
                                 >
@@ -1268,11 +1430,47 @@ export default function Admision() {
                         </tbody>
                       </table>
                     </div>
+                    </div>
 
-                    {/* Cerrar */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <button type="button" onClick={() => setShowEvalModal(false)}
-                        style={{ padding: '9px 24px', background: 'var(--c-surface-2)', color: 'var(--c-text)', border: '1px solid var(--c-border)', borderRadius: '6px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>
+                    {/* Acciones */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '10px',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={handleExportarPdf}
+                        style={{
+                          padding: '9px 18px',
+                          background: '#0CA678',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontWeight: '700',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Exportar PDF
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowEvalModal(false)}
+                        style={{
+                          padding: '9px 24px',
+                          background: 'var(--c-surface-2)',
+                          color: 'var(--c-text)',
+                          border: '1px solid var(--c-border)',
+                          borderRadius: '6px',
+                          fontWeight: '700',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                        }}
+                      >
                         Cerrar
                       </button>
                     </div>
