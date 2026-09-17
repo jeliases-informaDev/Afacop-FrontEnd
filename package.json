@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@atlaskit/calendar": "^18.0.0",
+    "@fontsource/inter": "^5.3.0",
     "axios": "^1.15.0",
     "driver.js": "^1.4.0",
     "gsap": "^3.15.0",
