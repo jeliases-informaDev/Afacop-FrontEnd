@@ -910,6 +910,8 @@ export default function Admision() {
                     String(calificacion || '').trim().toUpperCase()
                   ] || '#94A3B8';
                 };
+
+                const reporteActualizadoHasta = `Reporte actualizado con el periodo ${formatPeriodo(evalResult.periodo)}`;
                               
                 return (
                 <div
@@ -937,7 +939,7 @@ export default function Admision() {
                     <div
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '0.8fr 1.6fr 1.3fr 0.9fr',
+                        gridTemplateColumns: '0.8fr 1.8fr 1.3fr',
                         gap: '6px',
                       }}
                     >
@@ -948,7 +950,7 @@ export default function Admision() {
                       },
                       {
                         label: 'Nombre',
-                        value: formatNombre(evalResult.nombre)
+                        value: String(evalResult.nombre || '—').toUpperCase()
                       },
                       {
                         label: 'Consulta',
@@ -965,10 +967,7 @@ export default function Admision() {
                             )
                           : '—'
                       },
-                      {
-                        label: 'Período',
-                        value: formatPeriodo(evalResult.periodo)
-                      },
+                      
                     ].map(m => (
                       <div
                         key={m.label}
@@ -1027,9 +1026,7 @@ export default function Admision() {
                           </div>
                         ))}
                       </div>
-                      <div style={{ padding: '5px 14px', fontSize: '10px', color: 'var(--c-muted)', borderTop: '1px solid var(--c-border)' }}>
-                        Cifras redondeadas. No se muestra información menor a 0.5%
-                      </div>
+                      
                     </div>
 
                     {/* Detalle de deuda */}
@@ -1041,14 +1038,22 @@ export default function Admision() {
                         className="sbs-result-table sbs-debt-table"
                         style={{
                           width: '100%',
-                          borderCollapse: 'collapse'
+                          borderCollapse: 'collapse',
+                          tableLayout: 'fixed',
                         }}
                       >
+                        <colgroup>
+                          <col style={{ width: '28%' }} />
+                          <col style={{ width: '24%' }} />
+                          <col style={{ width: '20%' }} />
+                          <col style={{ width: '13%' }} />
+                          <col style={{ width: '15%' }} />
+                        </colgroup>
                         <thead>
                           <tr>
                             <th style={thStyle}>Entidad</th>
 
-                            <th style={thStyle}>
+                            <th style={{...thStyle}}>
                               Tipo de deuda
                             </th>
 
@@ -1059,10 +1064,10 @@ export default function Admision() {
                             <th
                               style={{
                                 ...thStyle,
-                                textAlign: 'right'
+                                textAlign: 'left'
                               }}
                             >
-                              Capital
+                              Días
                             </th>
 
                             <th
@@ -1071,8 +1076,8 @@ export default function Admision() {
                                 textAlign: 'right'
                               }}
                             >
-                              Días
-                            </th>
+                              Capital
+                            </th>                    
                           </tr>
                         </thead>
 
@@ -1124,28 +1129,39 @@ export default function Admision() {
                                     style={tdStyle}
                                   >
                                     <span
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '7px',
+                                        fontWeight: '700',
+                                        color: 'var(--c-text)',
+                                      }}
+                                    >
+                                      {d.calificacion || '—'}
+
+                                      <span
+                                        style={{
+                                          width: '10px',
+                                          height: '10px',
+                                          borderRadius: '50%',
+                                          backgroundColor:
+                                            getCalificacionColor(
+                                              d.calificacion
+                                            ),
+                                          flexShrink: 0,
+                                        }}
+                                      />
+                                    </span>
+                                  </td>
+
+                                  <td
+                                    data-label="Días"
                                     style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '6px',
-                                      fontWeight: '700',
+                                      ...tdStyle,
+                                      textAlign: 'left',
                                     }}
                                   >
-                                    {d.calificacion || '—'}
-
-                                    <span
-                                      style={{
-                                        width: '7px',
-                                        height: '7px',
-                                        borderRadius: '50%',
-                                        backgroundColor:
-                                          getCalificacionColor(
-                                            d.calificacion
-                                          ),
-                                        flexShrink: 0,
-                                      }}
-                                    />
-                                  </span>
+                                    {d.dias}
                                   </td>
 
                                   <td
@@ -1167,63 +1183,46 @@ export default function Admision() {
                                     )}
                                   </td>
 
-                                  <td
-                                    data-label="Días"
-                                    style={{
-                                      ...tdStyle,
-                                      textAlign: 'right',
-                                    }}
-                                  >
-                                    {d.dias}
-                                  </td>
+                                  
                                 </tr>
                               ))}
 
-                              {/* TOTAL CAPITAL */}
-                              <tr
-                                style={{
-                                  background: 'var(--c-surface-2)',
-                                  borderTop: '2px solid var(--c-border)',
-                                }}
-                              >
-                                {/* Entidad */}
-                                <td style={tdStyle} />
-
-                                {/* Tipo de deuda */}
-                                <td style={tdStyle} />
-
-                                {/* Calificación */}
-                                <td
+                              {/* TOTAL */}
+                                <tr
                                   style={{
-                                    ...tdStyle,
-                                    textAlign: 'right',
-                                    fontWeight: '700',
-                                    color: 'var(--c-text)',
+                                    background: 'var(--c-surface-2)',
+                                    borderTop: '2px solid var(--c-border)',
                                   }}
                                 >
-                                  TOTAL CAPITAL
-                                </td>
+                                  <td colSpan="3" style={tdStyle} />
 
-                                {/* Capital */}
-                                <td
-                                  style={{
-                                    ...tdStyle,
-                                    textAlign: 'right',
-                                    fontWeight: '700',
-                                    color: 'var(--c-text)',
-                                  }}
-                                >
-                                  {Number(
-                                    evalResult.totalCapital ?? 0
-                                  ).toLocaleString('es-PE', {
-                                    style: 'currency',
-                                    currency: 'PEN',
-                                  })}
-                                </td>
+                                  <td
+                                    style={{
+                                      ...tdStyle,
+                                      textAlign: 'left',
+                                      fontWeight: '700',
+                                      color: 'var(--c-text)',
+                                    }}
+                                  >
+                                    TOTAL
+                                  </td>
 
-                                {/* Días */}
-                                <td style={tdStyle} />
-                              </tr>
+                                  <td
+                                    style={{
+                                      ...tdStyle,
+                                      textAlign: 'right',
+                                      fontWeight: '700',
+                                      color: 'var(--c-text)',
+                                    }}
+                                  >
+                                    {Number(
+                                      evalResult.totalCapital ?? 0
+                                    ).toLocaleString('es-PE', {
+                                      style: 'currency',
+                                      currency: 'PEN',
+                                    })}
+                                  </td>
+                                </tr>
                             </>
                           )}
                         </tbody>
@@ -1233,26 +1232,23 @@ export default function Admision() {
                     {/* Líneas de crédito */}
                     <div className="sbs-result-section" style={{ border: '1px solid var(--c-border)', borderRadius: '8px', overflow: 'hidden' }}>
                       <div style={{ padding: '8px 14px', background: 'var(--c-surface-2)', borderBottom: '1px solid var(--c-border)', fontSize: '11px', fontWeight: '700', color: 'var(--c-muted)', textTransform: 'none', letterSpacing: '-0.01em' }}>
-                        Líneas de crédito
-                        <span
-                          style={{
-                            fontWeight: '400',
-                            fontSize: '9.5px',
-                            color: 'var(--c-muted)',
-                            marginLeft: '4px',
-                            letterSpacing: '-0.005em',
-                          }}
-                        >
-                          — otorgadas y no utilizadas
-                        </span>
+                        Líneas de crédito                        
                       </div>
                       <table
-                        className="sbs-result-table sbs-credit-table"
-                        style={{
-                          width: '100%',
-                          borderCollapse: 'collapse',
-                        }}
-                      >
+                          className="sbs-result-table sbs-credit-table"
+                          style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            tableLayout: 'fixed',
+                          }}
+                        >
+                          <colgroup>
+                            <col style={{ width: '28%' }} />
+                            <col style={{ width: '24%' }} />
+                            <col style={{ width: '20%' }} />
+                            <col style={{ width: '13%' }} />
+                            <col style={{ width: '15%' }} />
+                          </colgroup>
                         <thead>
                           <tr>
                             <th style={thStyle}>
@@ -1266,16 +1262,7 @@ export default function Admision() {
                             <th
                               style={{
                                 ...thStyle,
-                                textAlign: 'right',
-                              }}
-                            >
-                              Línea de crédito
-                            </th>
-
-                            <th
-                              style={{
-                                ...thStyle,
-                                textAlign: 'right',
+                                textAlign: 'left',
                               }}
                             >
                               % utilizado
@@ -1284,10 +1271,19 @@ export default function Admision() {
                             <th
                               style={{
                                 ...thStyle,
-                                textAlign: 'right',
+                                textAlign: 'left',
                               }}
                             >
                               % No utilizado
+                            </th>
+                            
+                            <th
+                              style={{
+                                ...thStyle,
+                                textAlign: 'right',
+                              }}
+                            >
+                              Línea de crédito
                             </th>
                           </tr>
                         </thead>
@@ -1336,6 +1332,30 @@ export default function Admision() {
                                   </td>
 
                                   <td
+                                    data-label="% utilizado"
+                                    style={{
+                                      ...tdStyle,
+                                      textAlign: 'left',
+                                    }}
+                                  >
+                                    {Number(
+                                      l.porcentajeUtilizado || 0
+                                    ).toFixed(2)}%
+                                  </td>
+
+                                  <td
+                                    data-label="% no utilizado"
+                                    style={{
+                                      ...tdStyle,
+                                      textAlign: 'left',
+                                    }}
+                                  >
+                                    {Number(
+                                      l.porcentajeNoUtilizado || 0
+                                    ).toFixed(2)}%
+                                  </td>
+
+                                  <td
                                     data-label="Línea de crédito"
                                     style={{
                                       ...tdStyle,
@@ -1353,128 +1373,112 @@ export default function Admision() {
                                       }
                                     )}
                                   </td>
-
-                                  <td
-                                    data-label="% utilizado"
-                                    style={{
-                                      ...tdStyle,
-                                      textAlign: 'right',
-                                    }}
-                                  >
-                                    {Number(
-                                      l.porcentajeUtilizado || 0
-                                    ).toFixed(2)}%
-                                  </td>
-
-                                  <td
-                                    data-label="% no utilizado"
-                                    style={{
-                                      ...tdStyle,
-                                      textAlign: 'right',
-                                    }}
-                                  >
-                                    {Number(
-                                      l.porcentajeNoUtilizado || 0
-                                    ).toFixed(2)}%
-                                  </td>
                                 </tr>
                               ))}
-
-                              {/* TOTAL LÍNEA DE CRÉDITO */}
-                              <tr
-                                style={{
-                                  background: 'var(--c-surface-2)',
-                                  borderTop: '2px solid var(--c-border)',
-                                }}
-                              >
-                                {/* Entidad */}
-                                <td style={tdStyle} />
-
-                                {/* Tipo de línea */}
-                                <td
+                              
+                              {/* TOTAL */}
+                                <tr
                                   style={{
-                                    ...tdStyle,
-                                    textAlign: 'right',
-                                    fontWeight: '700',
-                                    color: 'var(--c-text)',
+                                    background: 'var(--c-surface-2)',
+                                    borderTop: '2px solid var(--c-border)',
                                   }}
                                 >
-                                  TOTAL LÍNEA DE CRÉDITO
-                                </td>
+                                  <td colSpan="3" style={tdStyle} />
 
-                                {/* Línea crédito */}
-                                <td
-                                  style={{
-                                    ...tdStyle,
-                                    textAlign: 'right',
-                                    fontWeight: '700',
-                                    color: 'var(--c-text)',
-                                  }}
-                                >
-                                  {Number(
-                                    evalResult.totalLineaCredito ?? 0
-                                  ).toLocaleString('es-PE', {
-                                    style: 'currency',
-                                    currency: 'PEN',
-                                  })}
-                                </td>
+                                  <td
+                                    style={{
+                                      ...tdStyle,
+                                      textAlign: 'left',
+                                      fontWeight: '700',
+                                      color: 'var(--c-text)',
+                                    }}
+                                  >
+                                    TOTAL
+                                  </td>
 
-                                {/* % utilizado */}
-                                <td style={tdStyle} />
-
-                                {/* % no utilizado */}
-                                <td style={tdStyle} />
-                              </tr>
+                                  <td
+                                    style={{
+                                      ...tdStyle,
+                                      textAlign: 'right',
+                                      fontWeight: '700',
+                                      color: 'var(--c-text)',
+                                    }}
+                                  >
+                                    {Number(
+                                      evalResult.totalLineaCredito ?? 0
+                                    ).toLocaleString('es-PE', {
+                                      style: 'currency',
+                                      currency: 'PEN',
+                                    })}
+                                  </td>
+                                </tr>
                             </>
                           )}
                         </tbody>
                       </table>
                     </div>
-                    </div>
-
-                    {/* Acciones */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        gap: '10px',
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={handleExportarPdf}
+                    {/* Reporte actualizado + Acciones */}
+                      <div
                         style={{
-                          padding: '9px 18px',
-                          background: '#0CA678',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontWeight: '700',
-                          fontSize: '13px',
-                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '16px',
                         }}
                       >
-                        Exportar PDF
-                      </button>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            color: 'var(--c-muted)',
+                          }}
+                        >
+                          {reporteActualizadoHasta}
+                        </span>
 
-                      <button
-                        type="button"
-                        onClick={() => setShowEvalModal(false)}
-                        style={{
-                          padding: '9px 24px',
-                          background: 'var(--c-surface-2)',
-                          color: 'var(--c-text)',
-                          border: '1px solid var(--c-border)',
-                          borderRadius: '6px',
-                          fontWeight: '700',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Cerrar
-                      </button>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={handleExportarPdf}
+                            style={{
+                              padding: '9px 18px',
+                              background: '#0CA678',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontWeight: '700',
+                              fontSize: '13px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Exportar PDF
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setShowEvalModal(false)}
+                            style={{
+                              padding: '9px 24px',
+                              background: 'var(--c-surface-2)',
+                              color: 'var(--c-text)',
+                              border: '1px solid var(--c-border)',
+                              borderRadius: '6px',
+                              fontWeight: '700',
+                              fontSize: '13px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Cerrar
+                          </button>
+                        </div>
+                      </div>
                     </div>
-
                   </div>
                 );
               })()}
