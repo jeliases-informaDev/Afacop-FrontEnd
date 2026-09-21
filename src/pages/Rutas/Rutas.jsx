@@ -165,25 +165,77 @@ const ClientMarker = React.memo(({ client, isSelected, selectedIndex, onClick })
       icon={pinIcon}
       eventHandlers={{ click: handleMarkerClick }}
     >
-      {isSelected && <Popup>
-        <div className="p-2" style={{ minWidth: '160px' }}>
-          <h4 style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--c-text)', borderBottom: '1px solid var(--c-border)', paddingBottom: '8px', marginBottom: '8px' }}>
-            {client.nombres} {client.apellido_paterno}
-          </h4>
-          <div style={{ fontSize: '12px', color: 'var(--c-text-muted)', display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
-            <span><strong>DNI:</strong> {client.dni}</span>
-            <span><strong>Deuda Total:</strong> S/ {Number(client.deuda_vigente || 0) + Number(client.deuda_castigada || 0)}</span>
-            <span><strong>Estado:</strong> {client.estado}</span>
+      {isSelected && (
+        <Popup>
+          <div className="p-2" style={{ minWidth: '160px' }}>
+
+            <h4
+              style={{
+                fontWeight: 'bold',
+                fontSize: '14px',
+                color: 'var(--c-text)',
+                borderBottom: '1px solid var(--c-border)',
+                paddingBottom: '8px',
+                marginBottom: '8px'
+              }}
+            >
+              {client.nombres} {client.apellido_paterno}
+            </h4>
+
+            <div
+              style={{
+                fontSize: '12px',
+                color: 'var(--c-text-muted)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                marginBottom: '12px'
+              }}
+            >
+              <span>
+                <strong>DNI:</strong> {client.numero_documento || client.dni || '—'}
+              </span>
+
+              <span>
+                <strong>Deuda Total:</strong> S/ {
+                  Number(client.deuda_total || 0).toLocaleString('es-PE', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })
+                }
+              </span>
+
+              <span>
+                <strong>Estado:</strong> {
+                  client.estado_gestion || client.estado || 'LIBRE'
+                }
+              </span>
+            </div>
+
+            <button
+              className="btn btn-danger"
+              style={{
+                width: '100%',
+                padding: '6px',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                background: '#ef4444'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePopupAction();
+              }}
+            >
+              QUITAR DE RUTA
+            </button>
+
           </div>
-          <button
-            className="btn btn-danger"
-            style={{ width: '100%', padding: '6px', fontSize: '11px', fontWeight: 'bold', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', background: '#ef4444' }}
-            onClick={(e) => { e.stopPropagation(); handlePopupAction(); }}
-          >
-            QUITAR DE RUTA
-          </button>
-        </div>
-      </Popup>}
+        </Popup>
+      )}
     </Marker>
   );
 });
@@ -427,6 +479,39 @@ const RouteCard = ({ route, onEdit, onDelete, onStatusChange, onClientStatusChan
   );
 };
 
+const normalizarUbicacion = (valor) => {
+  return String(valor || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleUpperCase('es-PE');
+};
+
+const obtenerUbicacionesUnicas = (valores) => {
+  const mapa = new Map();
+
+  valores.forEach(valor => {
+    const original = String(valor || '')
+      .trim()
+      .replace(/\s+/g, ' ');
+
+    if (!original) return;
+
+    const normalizado = normalizarUbicacion(original);
+
+    // Lima, LIMA, lima => una sola opción
+    if (!mapa.has(normalizado)) {
+      mapa.set(normalizado, {
+        value: original,
+        label: normalizado
+      });
+    }
+  });
+
+  return [...mapa.values()].sort((a, b) =>
+    a.label.localeCompare(b.label, 'es')
+  );
+};
+
 export default function Rutas() {
   const { radarApi } = useContext(AuthContext);
   const { showToast } = useNotification();
@@ -452,6 +537,15 @@ export default function Rutas() {
   const [rutaFiltroFecha, setRutaFiltroFecha] = useState('');
   const [advisorSearch, setAdvisorSearch] = useState('');
   const [advisorDropdownOpen, setAdvisorDropdownOpen] = useState(false);
+  const [clienteSearch, setClienteSearch] = useState('');
+  const [clienteDepartamento, setClienteDepartamento] = useState('');
+  const [departamentosRuta, setDepartamentosRuta] = useState([]);
+  const [clienteDistrito, setClienteDistrito] = useState('');
+  const [distritosRuta, setDistritosRuta] = useState([]);
+  const [loadingClientesRuta, setLoadingClientesRuta] = useState(false);
+  const [totalClientesFiltro, setTotalClientesFiltro] = useState(0);
+
+  const clientesRutaRequestRef = useRef(0);
   const advisorComboboxRef = useRef(null);
 
   const registerPlannerHistory = useCallback(() => {
@@ -491,6 +585,12 @@ export default function Rutas() {
     [historicalClientIds, nuevaRuta.cliente_ids]
   );
   const routeClientIds = useMemo(() => [...new Set(displayedClientIds)], [displayedClientIds]);
+
+  const routeClientIdsRef = useRef([]);
+
+  useEffect(() => {
+    routeClientIdsRef.current = routeClientIds;
+  }, [routeClientIds]);
 
   const [polylineCoords, setPolylineCoords] = useState([]);
 
@@ -590,6 +690,205 @@ export default function Rutas() {
       }
     }
   }, [radarApi]);
+
+  const cargarClientesRuta = useCallback(async ({
+    advisor,
+    search = '',
+    distrito = '',
+    departamento= '',
+    signal
+  } = {}) => {
+
+    if (
+      !advisor ||
+      advisor.latitud === null ||
+      advisor.latitud === undefined ||
+      advisor.longitud === null ||
+      advisor.longitud === undefined
+    ) {
+      setClientes([]);
+      setTotalClientesFiltro(0);
+      return;
+    }
+
+    const requestId = ++clientesRutaRequestRef.current;
+
+    const lat = Number(advisor.latitud);
+    const lng = Number(advisor.longitud);
+
+    const params = {
+      page: 1,
+      limit: 9999
+    };
+
+    if (search.trim()) {
+      params.search = search.trim();
+    }
+
+    if (departamento.trim()) {
+      params.departamento = departamento.trim();
+    }
+
+    if (distrito.trim()) {
+      params.distrito = distrito.trim();
+    }
+
+    setLoadingClientesRuta(true);
+
+    try {
+      const res = await radarApi.get('/api/clientes', {
+        params,
+        signal
+      });
+
+      if (requestId !== clientesRutaRequestRef.current) {
+        return;
+      }
+
+      const data =
+        res.data?.data ||
+        res.data?.clientes ||
+        [];
+
+      setTotalClientesFiltro(
+        Number(res.data?.pagination?.total ?? data.length)
+      );
+
+      // Cargar departamentos desde la base de datos.
+      // Solo actualizamos la lista completa cuando no hay
+      // departamento seleccionado.
+      if (
+        !search.trim() &&
+        !departamento.trim() &&
+        !distrito.trim()
+      ) {
+        const departamentos = obtenerUbicacionesUnicas(
+          data.map(cliente => cliente.departamento)
+        );
+
+        setDepartamentosRuta(departamentos);
+      }
+
+
+      // Cargar distritos desde la base de datos.
+      // Si hay departamento seleccionado, data ya contiene
+      // solamente clientes de ese departamento.
+      if (
+        !search.trim() &&
+        !distrito.trim()
+      ) {
+        const distritos = obtenerUbicacionesUnicas(
+          data.map(cliente => cliente.distrito)
+        );
+
+        setDistritosRuta(distritos);
+      }
+
+      const preparados = data
+        .filter(
+          cliente =>
+            cliente.latitud !== null &&
+            cliente.latitud !== undefined &&
+            cliente.longitud !== null &&
+            cliente.longitud !== undefined
+        )
+        .map(cliente => ({
+          ...cliente,
+
+          distancia_km: Number(
+            calculateDistance(
+              lat,
+              lng,
+              Number(cliente.latitud),
+              Number(cliente.longitud)
+            ).toFixed(2)
+          )
+        }))
+        .sort(
+          (a, b) =>
+            Number(a.distancia_km) -
+            Number(b.distancia_km)
+        );
+
+      /*
+      * Conservamos clientes que ya están seleccionados aunque
+      * no coincidan con el filtro actual.
+      */
+      setClientes(actuales => {
+        const seleccionadosIds =
+          new Set(routeClientIdsRef.current.map(Number));
+
+        const seleccionados = actuales.filter(cliente =>
+          seleccionadosIds.has(Number(cliente.id_cliente))
+        );
+
+        const unidos = new Map(
+          [...seleccionados, ...preparados].map(cliente => [
+            Number(cliente.id_cliente),
+            cliente
+          ])
+        );
+
+        return [...unidos.values()].sort(
+          (a, b) =>
+            Number(a.distancia_km ?? Infinity) -
+            Number(b.distancia_km ?? Infinity)
+        );
+      });
+
+    } catch (error) {
+      if (
+        error.name !== 'CanceledError' &&
+        error.name !== 'AbortError'
+      ) {
+        console.error(
+          'Error al filtrar clientes para ruta:',
+          error
+        );
+      }
+    } finally {
+      if (requestId === clientesRutaRequestRef.current) {
+        setLoadingClientesRuta(false);
+      }
+    }
+
+  }, [radarApi]);
+
+  useEffect(() => {
+    if (
+      !showPlanner ||
+      !nuevaRuta.id_asesor ||
+      !selectedAdvisor
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const timer = window.setTimeout(() => {
+      cargarClientesRuta({
+        advisor: selectedAdvisor,
+        search: clienteSearch,
+        departamento: clienteDepartamento,
+        distrito: clienteDistrito,
+        signal: controller.signal
+      });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+
+  }, [
+    showPlanner,
+    nuevaRuta.id_asesor,
+    selectedAdvisor,
+    clienteSearch,
+    clienteDepartamento,
+    clienteDistrito,
+    cargarClientesRuta
+  ]);
 
   useEffect(() => {
     const refreshFromFieldApp = () => fetchRutas();
@@ -708,24 +1007,21 @@ export default function Rutas() {
       const advisorLng = parseFloat(a.longitud);
       setAdvisorCoords([advisorLat, advisorLng]);
 
-      try {
-        const resClientes = await radarApi.get('/api/clientes?page=1&limit=1000');
-        const data = resClientes.data.data || resClientes.data.clientes || [];
-        const filtered = data
-          .filter(c => c.latitud != null && c.longitud != null)
-          .map(c => ({
-            ...c,
-            distancia_km: Number(calculateDistance(advisorLat, advisorLng, Number(c.latitud), Number(c.longitud)).toFixed(2)),
-          }))
-          .sort((first, second) => first.distancia_km - second.distancia_km);
-        setClientes(filtered);
-      } catch (err) {
-        console.error('Error al cargar clientes en modo edición:', err);
-      }
+      if (a && a.latitud != null && a.longitud != null) {
+      const advisorLat = parseFloat(a.latitud);
+      const advisorLng = parseFloat(a.longitud);
+
+      setAdvisorCoords([advisorLat, advisorLng]);
+
+      setClienteSearch('');
+      setClienteDepartamento('');
+      setClienteDistrito('');
+
     } else {
       setAdvisorCoords(null);
       setClientes([]);
     }
+  }
 
   }, [asesores, radarApi, registerPlannerHistory, routes]);
   const handleAsesorChange = async (e) => {
@@ -781,33 +1077,29 @@ export default function Rutas() {
       return;
     }
 
-    if (a.latitud !== null && a.latitud !== undefined && a.longitud !== null && a.longitud !== undefined) {
+    if (
+      a.latitud !== null &&
+      a.latitud !== undefined &&
+      a.longitud !== null &&
+      a.longitud !== undefined
+    ) {
       const lat = parseFloat(a.latitud);
       const lng = parseFloat(a.longitud);
-      console.log('DIAGNOSTICO handleAsesorChange: advisor coords =', [lat, lng]);
+
       setAdvisorCoords([lat, lng]);
 
-      // Reactivar carga de todos los clientes (Fase 2)
-      try {
-        const resClientes = await radarApi.get('/api/clientes?page=1&limit=1000');
-        const data = resClientes.data.data || resClientes.data.clientes || [];
-        const filtered = data
-          .filter(c => c.latitud != null && c.longitud != null)
-          .map(c => ({
-            ...c,
-            distancia_km: Number(calculateDistance(lat, lng, Number(c.latitud), Number(c.longitud)).toFixed(2)),
-          }))
-          .sort((first, second) => first.distancia_km - second.distancia_km);
-        setClientes(filtered);
-      } catch (err) {
-        console.error('Error al cargar clientes:', err);
-        showToast('Error al cargar clientes.', 'error');
-      }
+      setClienteSearch('');
+      setClienteDepartamento('');
+      setClienteDistrito('');
+
     } else {
-      console.log('DIAGNOSTICO handleAsesorChange: advisor has no coordinates:', a.latitud, a.longitud);
       setClientes([]);
       setAdvisorCoords(null);
-      showToast('El asesor seleccionado no cuenta con coordenadas geográficas asignadas.', 'warning');
+
+      showToast(
+        'El asesor seleccionado no cuenta con coordenadas geográficas asignadas.',
+        'warning'
+      );
     }
   };
 
@@ -958,7 +1250,7 @@ export default function Rutas() {
 
           {/* Barra de búsqueda */}
           <div className="routes-filter-bar" style={{ display: 'flex', marginBottom: '14px', flexWrap: 'wrap', gap: '12px', alignItems: 'center', width: '100%' }}>
-            <div style={{ position: 'relative', flex: '1 1 360px', minWidth: '240px' }}>
+            <div style={{ position: 'relative', flex: '1 1 360px', minWidth: '280px' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
               <input className="routes-filter-search" type="search" value={rutaSearch} onChange={e => setRutaSearch(e.target.value)} placeholder="Buscar por asesor, DNI, cliente o ruta..."
                 style={{ width: '100%', padding: '9px 12px 9px 32px', border: '1px solid var(--c-border)', borderRadius: '8px', fontSize: '13px', fontFamily: 'Inter,sans-serif', color: 'var(--c-text)', outline: 'none', background: 'var(--c-surface)', boxSizing: 'border-box' }} />
@@ -1238,6 +1530,145 @@ export default function Rutas() {
             </div>
 
           </div>
+
+          {nuevaRuta.id_asesor && selectedAdvisor && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                flexWrap: 'wrap',
+                padding: '10px 16px',
+                background: 'var(--c-surface)',
+                border: '1px solid var(--c-border)',
+                borderRadius: '12px'
+              }}
+            >
+
+              <div
+                style={{
+                  position: 'relative',
+                  flex: '1 1 280px'
+                }}
+              >
+                <Search
+                  size={15}
+                  style={{
+                    position: 'absolute',
+                    left: 10,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--c-muted)'
+                  }}
+                />
+
+                <input
+                  type="search"
+                  value={clienteSearch}
+                  onChange={e => setClienteSearch(e.target.value)}
+                  placeholder="Buscar cliente por nombre o DNI..."
+                  style={{
+                    width: '100%',
+                    height: 38,
+                    padding: '0 12px 0 34px',
+                    border: '1px solid var(--c-border)',
+                    borderRadius: 8,
+                    background: 'var(--c-surface)',
+                    color: 'var(--c-text)'
+                  }}
+                />
+              </div>
+
+              <select
+                value={clienteDepartamento}
+                onChange={e => {
+                  setClienteDepartamento(e.target.value);
+                  setClienteDistrito('');
+                }}
+                style={{
+                  height: 38,
+                  width: 220,
+                  flex: '0 0 220px',
+                  padding: '0 10px',
+                  border: '1px solid var(--c-border)',
+                  borderRadius: 8,
+                  background: 'var(--c-surface)',
+                  color: 'var(--c-text)'
+                }}
+              >
+                <option value="">
+                  Todos los departamentos
+                </option>
+
+                {departamentosRuta.map(departamento => (
+                  <option
+                    key={departamento.label}
+                    value={departamento.value}
+                  >
+                    {departamento.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={clienteDistrito}
+                onChange={e =>
+                  setClienteDistrito(e.target.value)
+                }
+                style={{
+                  height: 38,
+                  width: 220,
+                  flex: '0 0 220px',
+                  padding: '0 10px',
+                  border: '1px solid var(--c-border)',
+                  borderRadius: 8,
+                  background: 'var(--c-surface)',
+                  color: 'var(--c-text)'
+                }}
+              >
+                <option value="">
+                  Todos los distritos
+                </option>
+
+               {distritosRuta.map(distrito => (
+                <option
+                  key={distrito.label}
+                  value={distrito.value}
+                >
+                  {distrito.label}
+                </option>
+              ))}
+              </select>
+
+              {(clienteSearch ||
+                clienteDepartamento ||
+                clienteDistrito) && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => {
+                    setClienteSearch('');
+                    setClienteDepartamento('');
+                    setClienteDistrito('');
+                  }}
+                >
+                  Limpiar
+                </button>
+              )}
+
+              <span
+                style={{
+                  fontSize: 12,
+                  color: 'var(--c-muted)'
+                }}
+              >
+                {loadingClientesRuta
+                  ? 'Buscando...'
+                  : `${totalClientesFiltro} clientes`}
+              </span>
+
+            </div>
+          )}
 
           {/* Contenedor Principal (Mapa + Panel de Clientes Seleccionados si hay asesor) */}
           <div className="route-planner-workspace" style={{ display: 'flex', flex: 1, gap: '20px', minHeight: '300px', overflow: 'hidden' }}>
