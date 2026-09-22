@@ -287,7 +287,7 @@ const ordenarEvaluacionesPorPatron = (items) => {
 
 export default function Admision() {
   const [showEvalModal, setShowEvalModal] = useState(false);
-  const [dniSearch, setDniSearch] = useState('');
+  const [documentoSearch, setDocumentoSearch] = useState('');
   const [loadingEval, setLoadingEval] = useState(false);
   const [evalResult, setEvalResult] = useState(null);
   const [evalError, setEvalError] = useState('');
@@ -389,29 +389,43 @@ export default function Admision() {
   }, [radarApi]);
 
   const handleBuscarSBS = async () => {
-    if (!dniSearch || dniSearch.length !== 8) return;
+    const documento = String(
+      documentoSearch || ''
+    )
+      .trim()
+      .toUpperCase();
 
-      setLoadingEval(true);
-      setEvalResult(null);
-      setEvalError('');
+    if (
+      !/^[A-Z0-9]{3,20}$/.test(documento)
+    ) {
+      setEvalError(
+        'Ingrese un número de documento válido.'
+      );
+      return;
+    }
 
-      try {
-        const response = await radarApi.get(
-          `/api/admision/evaluar/${dniSearch}`
-        );
+    setLoadingEval(true);
+    setEvalResult(null);
+    setEvalError('');
 
-        setEvalResult(response.data.data);
-      } catch (err) {
-        console.error(
-          'Error consultando evaluación crediticia:',
-          err
-        );
+    try {
+      const response = await radarApi.get(
+        `/api/admision/evaluar/${encodeURIComponent(documento)}`
+      );
+
+      setEvalResult(response.data.data);
+
+    } catch (err) {
+      console.error(
+        'Error consultando evaluación crediticia:',
+        err
+      );
 
       const status = err.response?.status;
 
       if (status === 404) {
         setEvalError(
-          'No se encontró información crediticia para el DNI consultado.'
+          'No se encontró información crediticia para el documento consultado.'
         );
       } else if (status === 401) {
         setEvalError(
@@ -463,7 +477,7 @@ export default function Admision() {
 
     link.href = pdfUrl;
     link.download =
-      `calificacion_crediticia_${evalResult.dni}.pdf`;
+      `calificacion_crediticia_${evalResult.documento}.pdf`
 
     document.body.appendChild(link);
 
@@ -489,7 +503,7 @@ export default function Admision() {
           <p style={{ color: 'var(--c-muted)', fontSize: '14px', marginTop: '4px' }}>Visualiza las evaluaciones de campo y realiza consultas manuales en la SBS.</p>
         </div>
         <button className="admission-manual-button"
-          onClick={() => { setShowEvalModal(true); setEvalResult(null); setEvalError(''); setDniSearch(''); }}
+          onClick={() => { setShowEvalModal(true); setEvalResult(null); setEvalError(''); setDocumentoSearch(''); }}
           style={{
             backgroundColor: 'var(--c-primary)', color: 'white', border: 'none', padding: '10px 20px', 
             borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px',
@@ -818,21 +832,40 @@ export default function Admision() {
               <div className="sbs-search-row" style={{ display: 'flex', gap: '12px', marginBottom: '30px' }}>
                 <input
                   type="text"
-                  placeholder="Ingrese DNI del cliente..."
-                  value={dniSearch}
-                  onChange={e => setDniSearch(e.target.value.replace(/[^0-9]/g, ''))}
-                  onKeyDown={e => { if (e.key === 'Enter') handleBuscarSBS(); }}
-                  maxLength={8}
+                  placeholder="Ingrese DNI, RUC, CE o pasaporte..."
+                  value={documentoSearch}
+                  onChange={e =>
+                    setDocumentoSearch(
+                      e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9]/g, '')
+                    )
+                  }
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      handleBuscarSBS();
+                    }
+                  }}
+                  maxLength={20}
                   autoFocus
-                  style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--c-border)', backgroundColor: 'var(--c-surface-2)', color: 'var(--c-text)', fontSize: '16px', outline: 'none' }}
+                  style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--c-border)',
+                    backgroundColor: 'var(--c-surface-2)',
+                    color: 'var(--c-text)',
+                    fontSize: '16px',
+                    outline: 'none'
+                  }}
                 />
                 <button 
                   onClick={handleBuscarSBS}
-                  disabled={loadingEval || dniSearch.length < 8}
+                  disabled={loadingEval || documentoSearch.length < 8}
                   style={{
                     backgroundColor: '#0CA678', color: 'white', border: 'none', padding: '0 24px', borderRadius: '8px', 
-                    fontWeight: 'bold', cursor: (loadingEval || dniSearch.length < 8) ? 'not-allowed' : 'pointer', fontSize: '16px',
-                    opacity: (loadingEval || dniSearch.length < 8) ? 0.6 : 1
+                    fontWeight: 'bold', cursor: (loadingEval || documentoSearch.length < 8) ? 'not-allowed' : 'pointer', fontSize: '16px',
+                    opacity: (loadingEval || documentoSearch.length < 8) ? 0.6 : 1
                   }}
                 >
                   {loadingEval ? 'Consultando...' : 'Validar'}
@@ -945,8 +978,8 @@ export default function Admision() {
                     >
                     {[
                       {
-                        label: 'DNI',
-                        value: evalResult.dni
+                        label: 'Documento',
+                        value: evalResult.documento
                       },
                       {
                         label: 'Nombre',
