@@ -288,6 +288,7 @@ const ordenarEvaluacionesPorPatron = (items) => {
 export default function Admision() {
   const [showEvalModal, setShowEvalModal] = useState(false);
   const [documentoSearch, setDocumentoSearch] = useState('');
+  const [tipoDocumento, setTipoDocumento] = useState('DNI');
   const [loadingEval, setLoadingEval] = useState(false);
   const [evalResult, setEvalResult] = useState(null);
   const [evalError, setEvalError] = useState('');
@@ -388,6 +389,29 @@ export default function Admision() {
     fetchEvaluaciones();
   }, [radarApi]);
 
+  const documentoValido = () => {
+  const documento = String(
+    documentoSearch || ''
+  )
+    .trim()
+    .toUpperCase();
+
+  switch (tipoDocumento) {
+    case 'DNI':
+      return /^\d{8}$/.test(documento);
+
+    case 'RUC':
+      return /^\d{11}$/.test(documento);
+
+    case 'CE':
+    case 'PASS':
+      return /^[A-Z0-9]{3,20}$/.test(documento);
+
+    default:
+      return false;
+  }
+};
+
   const handleBuscarSBS = async () => {
     const documento = String(
       documentoSearch || ''
@@ -395,11 +419,13 @@ export default function Admision() {
       .trim()
       .toUpperCase();
 
-    if (
-      !/^[A-Z0-9]{3,20}$/.test(documento)
-    ) {
+    if (!documentoValido()) {
       setEvalError(
-        'Ingrese un número de documento válido.'
+        `Ingrese un ${
+          tipoDocumento === 'PASS'
+            ? 'pasaporte'
+            : tipoDocumento
+        } válido.`
       );
       return;
     }
@@ -829,24 +855,95 @@ export default function Admision() {
 
             <div className="sbs-modal-body" style={{ padding: '24px' }}>
               {/* Buscador */}
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '20px',
+                  marginBottom: '14px'
+                }}
+              >
+                {[
+                  { value: 'DNI', label: 'DNI' },
+                  { value: 'RUC', label: 'RUC' },
+                  { value: 'CE', label: 'CE' },
+                  { value: 'PASS', label: 'Pasaporte' }
+                ].map(tipo => (
+                  <label
+                    key={tipo.value}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      fontSize: '13px'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="tipoDocumento"
+                      value={tipo.value}
+                      checked={tipoDocumento === tipo.value}
+                      onChange={() => {
+                        setTipoDocumento(tipo.value);
+                        setDocumentoSearch('');
+                        setEvalError('');
+                        setEvalResult(null);
+                      }}
+                    />
+
+                    {tipo.label}
+                  </label>
+                ))}
+              </div>
               <div className="sbs-search-row" style={{ display: 'flex', gap: '12px', marginBottom: '30px' }}>
                 <input
                   type="text"
-                  placeholder="Ingrese DNI, RUC, CE o pasaporte..."
-                  value={documentoSearch}
-                  onChange={e =>
-                    setDocumentoSearch(
-                      e.target.value
-                        .toUpperCase()
-                        .replace(/[^A-Z0-9]/g, '')
-                    )
+                  placeholder={
+                    tipoDocumento === 'DNI'
+                      ? 'Ingrese DNI...'
+                      : tipoDocumento === 'RUC'
+                      ? 'Ingrese RUC...'
+                      : tipoDocumento === 'CE'
+                      ? 'Ingrese CE...'
+                      : 'Ingrese pasaporte...'
                   }
+                  value={documentoSearch}
+                  onChange={e => {
+                    let valor =
+                      e.target.value.toUpperCase();
+
+                    if (
+                      tipoDocumento === 'DNI' ||
+                      tipoDocumento === 'RUC'
+                    ) {
+                      valor = valor.replace(/\D/g, '');
+                    } else {
+                      valor = valor.replace(
+                        /[^A-Z0-9]/g,
+                        ''
+                      );
+                    }
+
+                    setDocumentoSearch(valor);
+                  }}
                   onKeyDown={e => {
-                    if (e.key === 'Enter') {
+                    if (
+                      e.key === 'Enter' &&
+                      documentoValido()
+                    ) {
                       handleBuscarSBS();
                     }
                   }}
-                  maxLength={20}
+                  maxLength={
+                    tipoDocumento === 'DNI'
+                      ? 8
+                      : tipoDocumento === 'RUC'
+                      ? 11
+                      : 20
+                  }
                   autoFocus
                   style={{
                     flex: 1,
@@ -859,17 +956,34 @@ export default function Admision() {
                     outline: 'none'
                   }}
                 />
-                <button 
-                  onClick={handleBuscarSBS}
-                  disabled={loadingEval || documentoSearch.length < 8}
-                  style={{
-                    backgroundColor: '#0CA678', color: 'white', border: 'none', padding: '0 24px', borderRadius: '8px', 
-                    fontWeight: 'bold', cursor: (loadingEval || documentoSearch.length < 8) ? 'not-allowed' : 'pointer', fontSize: '16px',
-                    opacity: (loadingEval || documentoSearch.length < 8) ? 0.6 : 1
-                  }}
-                >
-                  {loadingEval ? 'Consultando...' : 'Validar'}
-                </button>
+                  <button
+                    onClick={handleBuscarSBS}
+                    disabled={
+                      loadingEval ||
+                      !documentoValido()
+                    }
+                    style={{
+                      backgroundColor: '#0CA678',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0 24px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      cursor:
+                        loadingEval ||
+                        !documentoValido()
+                          ? 'not-allowed'
+                          : 'pointer',
+                      fontSize: '16px',
+                      opacity:
+                        loadingEval ||
+                        !documentoValido()
+                          ? 0.6
+                          : 1
+                    }}
+                  >
+                    {loadingEval ? 'Consultando...' : 'Validar'}
+                  </button>
               </div>
 
               {/* Loading State */}
