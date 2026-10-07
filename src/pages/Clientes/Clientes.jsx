@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import CustomDatePicker from '../../shared/ui/CustomDatePicker.jsx';
 import { AppAlert } from '../../shared/utils/alerts/alerts.js';
@@ -167,7 +168,9 @@ function FichaDetallePanel({ g, originalApiBaseUrl }) {
 }
 
 export default function Clientes() {
-  const { api, radarApi, sedeActual } = useContext(AuthContext);
+  const { api, radarApi, sedeActual, user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const puedeRevisarUbicaciones = ['ADMINISTRADOR', 'GERENTE', 'SUPERVISOR'].includes(user?.rol);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 12, totalPages: 0 });
@@ -376,9 +379,20 @@ export default function Clientes() {
 
   return (
     <div className="clients-page">
-      <div style={{ marginBottom: '24px' }}>
-        <h1 className="text-2xl font-bold" style={{ fontSize: '26px' }}>Gestión de Clientes - {sedeActual?.nombre || 'General'}</h1>
-        <p className="text-muted" style={{ fontSize: '14px' }}>Administra tu cartera de clientes y visualiza sus deudas en esta sede.</p>
+      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ fontSize: '26px' }}>Gestión de Clientes - {sedeActual?.nombre || 'General'}</h1>
+          <p className="text-muted" style={{ fontSize: '14px' }}>Administra tu cartera de clientes y visualiza sus deudas en esta sede.</p>
+        </div>
+        {puedeRevisarUbicaciones && (
+          <button
+            type="button"
+            onClick={() => navigate('/clientes/ubicaciones')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--c-primary)', color: 'var(--c-on-primary)', border: 'none', borderRadius: '10px', padding: '10px 16px', fontWeight: 600, cursor: 'pointer' }}
+          >
+            <MapPin size={16} /> Revisar ubicaciones
+          </button>
+        )}
       </div>
 
       <div className="clients-results-card">

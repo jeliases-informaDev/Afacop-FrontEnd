@@ -7,6 +7,7 @@ import Dashboard from '../pages/Dashboard/Dashboard.jsx';
 import MapPage from '../pages/Mapa/Map.jsx';
 import Evidencias from '../pages/Evidencias/Evidencias.jsx';
 import Clientes from '../pages/Clientes/Clientes.jsx';
+import UbicacionesRevision from '../pages/Clientes/UbicacionesRevision.jsx';
 import Workers from '../pages/Asesores/Workers.jsx';
 import WorkerDetail from '../pages/Asesores/WorkerDetail.jsx';
 import Rutas from '../pages/Rutas/Rutas.jsx';
@@ -260,6 +261,7 @@ function ModuleRoutes() {
       <Route path="/map"       element={<ProtectedRoute title="Mapa" pageClass="page-content--map" moduloKey="mapa"><MapPage /></ProtectedRoute>} />
       <Route path="/evidencias" element={<ProtectedRoute title="Evidencias" moduloKey="evidencias"><Evidencias /></ProtectedRoute>} />
       <Route path="/clientes"  element={<ProtectedRoute title="Clientes"   moduloKey="clientes"><Clientes /></ProtectedRoute>} />
+      <Route path="/clientes/ubicaciones" element={<ProtectedRoute title="Ubicaciones" moduloKey="clientes"><UbicacionesRevision /></ProtectedRoute>} />
       <Route path="/workers"   element={<ProtectedRoute title="Asesores"   moduloKey="asesores"><Workers /></ProtectedRoute>} />
       <Route path="/workers/:id" element={<ProtectedRoute title="Detalle Asesor" moduloKey="asesores"><WorkerDetail /></ProtectedRoute>} />
       <Route path="/admision"  element={<ProtectedRoute title="Admisión"   moduloKey="admision"><Admision /></ProtectedRoute>} />
