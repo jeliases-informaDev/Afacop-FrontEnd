@@ -25,18 +25,28 @@ const PAGE_SIZE = 15;
 const TABS = [
   { key: 'REVISAR', label: 'Por revisar' },
   { key: 'NO_ENCONTRADO', label: 'No encontrados' },
-  { key: 'ERROR', label: 'Con error' },
-  { key: 'LOCALIZADO', label: 'Automáticos' },
+  { key: 'APROXIMADAS', label: 'Aproximadas' },
+  { key: 'PRECISAS', label: 'Precisas' },
   { key: 'VERIFICADO', label: 'Verificados' },
+  { key: 'ERROR', label: 'Con error' },
 ];
-const ESTADO_LABEL = {
-  REVISAR: 'Por revisar',
-  NO_ENCONTRADO: 'No encontrado',
-  ERROR: 'Error',
-  LOCALIZADO: 'Automático',
-  VERIFICADO: 'Verificado',
-  PENDIENTE: 'Pendiente',
-};
+// Orden en que se elige la pestaña inicial: la primera que tenga clientes.
+const PRIORIDAD_INICIAL = ['REVISAR', 'NO_ENCONTRADO', 'APROXIMADAS', 'PRECISAS', 'VERIFICADO'];
+
+function etiquetaCalidad(cliente) {
+  switch (cliente.estado_geocodificacion) {
+    case 'VERIFICADO': return 'Verificado';
+    case 'REVISAR': return 'Por revisar';
+    case 'NO_ENCONTRADO': return 'No encontrado';
+    case 'ERROR': return 'Error';
+    case 'PENDIENTE': return 'Pendiente';
+    case 'LOCALIZADO':
+      return cliente.confianza_geocodificacion === 'ALTA' || cliente.precision_geocodificacion === 'IMPORTADA'
+        ? 'Precisa'
+        : 'Aproximada';
+    default: return cliente.estado_geocodificacion || 'Sin estado';
+  }
+}
 const CONFIANZA_CLASE = { ALTA: 'is-high', MEDIA: 'is-medium', BAJA: 'is-low' };
 
 function MapClick({ onPick }) {
@@ -277,7 +287,7 @@ function ModalUbicacion({ cliente, onClose, onSaved }) {
               <dd>{cliente.direccion_geocodificada || 'No se encontró ninguna coincidencia'}</dd>
               <dt>Estado</dt>
               <dd>
-                <span className={`ubi-badge is-estado-${cliente.estado_geocodificacion}`}>{ESTADO_LABEL[cliente.estado_geocodificacion] || cliente.estado_geocodificacion}</span>
+                <span className={`ubi-badge is-estado-${cliente.estado_geocodificacion}`}>{etiquetaCalidad(cliente)}</span>
                 {cliente.confianza_geocodificacion && (
                   <span className={`ubi-badge ${CONFIANZA_CLASE[cliente.confianza_geocodificacion] || ''}`}>Confianza {cliente.confianza_geocodificacion.toLowerCase()}</span>
                 )}
@@ -354,6 +364,7 @@ export default function UbicacionesRevision() {
   const [datos, setDatos] = useState({ items: [], resumen: {}, pagination: { page: 1, pages: 1, total: 0 } });
   const [cargando, setCargando] = useState(true);
   const [seleccionado, setSeleccionado] = useState(null);
+  const pestanaElegida = useRef(false);
 
   const autorizado = ROLES_PERMITIDOS.includes(user?.rol);
 
@@ -370,6 +381,14 @@ export default function UbicacionesRevision() {
         params: { estado, buscar: buscar || undefined, page, limit: PAGE_SIZE },
       });
       setDatos(data.data);
+
+      // La primera vez, si la pestaña inicial está vacía, se abre la primera que tenga clientes.
+      if (!pestanaElegida.current) {
+        pestanaElegida.current = true;
+        const resumen = data.data.resumen || {};
+        const siguiente = PRIORIDAD_INICIAL.find(clave => resumen[clave] > 0);
+        if (!resumen[estado] && siguiente && siguiente !== estado) setEstado(siguiente);
+      }
     } catch (error) {
       AppAlert.error('No se pudo cargar la lista', error.response?.data?.error || error.message);
     } finally {
@@ -405,9 +424,14 @@ export default function UbicacionesRevision() {
       </button>
       <h1>Ubicaciones de clientes</h1>
       <p className="ubi-subtitle">
-        Revisa los clientes cuya dirección no se pudo ubicar con certeza y corrige el pin en el mapa.
-        Una vez verificada, la ubicación no se vuelve a cambiar sola.
+        Calidad de la ubicación de cada cliente. Una vez verificada, la ubicación no se vuelve a cambiar sola.
       </p>
+      <div className="ubi-note" role="note">
+        <strong>No necesitas revisar todo.</strong> Las ubicaciones <em>aproximadas</em> sirven para ver la zona en
+        el mapa, y el asesor navega por la dirección escrita cuando el punto no es confiable. Se corrigen cuando el
+        asesor confirma el domicilio al llegar. Aquí revisa solo lo que vayas a visitar pronto, empezando por
+        "Por revisar" y "No encontrados".
+      </div>
 
       <div className="ubi-tabs" role="tablist">
         {TABS.map(tab => (
