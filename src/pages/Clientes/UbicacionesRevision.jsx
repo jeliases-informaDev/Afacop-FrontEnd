@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -44,6 +44,169 @@ function MapClick({ onPick }) {
   return null;
 }
 
+// OpenStreetMap solo entiende bien la dirección escrita completa ("Avenida", no "Av.")
+// y sin ", Perú" al final; por eso se arregla el texto antes de buscar.
+const ABREVIATURAS = [
+  [/\bAV(?:DA?)?(?:\.\s*|(?=\s))/gi, 'Avenida '],
+  [/\bJR(?:\.\s*|(?=\s))/gi, 'Jirón '],
+  [/\bCAL?(?:\.\s*|(?=\s))/gi, 'Calle '],
+  [/\bPSJE?(?:\.\s*|(?=\s))/gi, 'Pasaje '],
+  [/\bURB(?:\.\s*|(?=\s))/gi, 'Urbanización '],
+];
+const COORDENADAS = /^\s*(-?\d{1,3}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/;
+const ESPERA_ENTRE_BUSQUEDAS_MS = 1100;
+
+const normalizar = texto => String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const arreglarEspacios = texto => texto.replace(/\s+/g, ' ').replace(/\s+,/g, ',').replace(/,\s*,/g, ',').replace(/^,|,$/g, '').trim();
+
+function prepararConsulta(texto) {
+  let consulta = String(texto ?? '').replace(/,?\s*per[uú]\s*$/i, '');
+  for (const [patron, reemplazo] of ABREVIATURAS) consulta = consulta.replace(patron, reemplazo);
+  return arreglarEspacios(consulta);
+}
+
+const sinNumeros = texto => arreglarEspacios(texto.replace(/\b\d{1,5}[A-Za-z]?\b(?!\s+de\b)/g, ''));
+
+// Coordenadas pegadas desde Google Maps (clic derecho -> copiar). Devuelve null si el
+// texto no parece coordenadas, 'fuera' si no caen en Perú, o [latitud, longitud].
+function leerCoordenadas(texto) {
+  const coincidencia = COORDENADAS.exec(texto);
+  if (!coincidencia) return null;
+  const latitud = Number(coincidencia[1]);
+  const longitud = Number(coincidencia[2]);
+  const enPeru = latitud >= -18.5 && latitud <= 0.1 && longitud >= -81.5 && longitud <= -68.5;
+  return enPeru ? [latitud, longitud] : 'fuera';
+}
+
+function zoomPorTipo(item) {
+  const tipo = item.addresstype || item.type;
+  if (['house', 'building', 'place'].includes(tipo)) return 18;
+  if (['road', 'street', 'pedestrian', 'residential'].includes(tipo)) return 16;
+  return 15;
+}
+
+function BuscadorDireccion({ mapa, textoInicial, distrito, autoCentrar, onColocarPin }) {
+  const [texto, setTexto] = useState(textoInicial);
+  const [resultados, setResultados] = useState([]);
+  const [abierto, setAbierto] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  const [mensaje, setMensaje] = useState('');
+  const ultimaConsulta = useRef(0);
+
+  const consultar = async consulta => {
+    // El servicio público de OpenStreetMap permite como máximo una consulta por segundo.
+    const falta = ESPERA_ENTRE_BUSQUEDAS_MS - (Date.now() - ultimaConsulta.current);
+    if (falta > 0) await new Promise(resolver => setTimeout(resolver, falta));
+    ultimaConsulta.current = Date.now();
+
+    const params = new URLSearchParams({
+      q: consulta, format: 'jsonv2', countrycodes: 'pe', limit: '6', 'accept-language': 'es',
+    });
+    const respuesta = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!respuesta.ok) throw new Error('busqueda');
+    return respuesta.json();
+  };
+
+  const irA = item => mapa?.flyTo([Number(item.lat), Number(item.lon)], zoomPorTipo(item));
+
+  const buscar = async (valor, { silencioso = false } = {}) => {
+    const buscado = valor.trim();
+    if (!buscado || !mapa) return;
+
+    const coordenadas = leerCoordenadas(buscado);
+    if (coordenadas === 'fuera') {
+      setMensaje('Esas coordenadas no están dentro de Perú.');
+      return;
+    }
+    if (coordenadas) {
+      onColocarPin(coordenadas);
+      mapa.flyTo(coordenadas, 18);
+      setResultados([]);
+      setAbierto(false);
+      setMensaje('Pin colocado en esas coordenadas. Revisa que sea el lugar y guarda.');
+      return;
+    }
+
+    setBuscando(true);
+    setMensaje('');
+    try {
+      const base = prepararConsulta(buscado);
+      let lista = await consultar(base);
+      let soloCalle = false;
+      if (!lista.length && /\d/.test(base)) {
+        const calle = sinNumeros(base);
+        if (calle && calle !== base) {
+          lista = await consultar(calle);
+          soloCalle = lista.length > 0;
+        }
+      }
+
+      if (silencioso) {
+        const elegido = lista.find(item => !distrito || normalizar(item.display_name).includes(normalizar(distrito)));
+        if (elegido) irA(elegido);
+        return;
+      }
+
+      setResultados(lista);
+      setAbierto(lista.length > 0);
+      if (!lista.length) {
+        setMensaje('Sin resultados. Prueba con solo la calle y el distrito, o pega las coordenadas de Google Maps.');
+      } else if (soloCalle) {
+        setMensaje('El mapa no tiene ese número: solo encontró la calle. Haz clic en el mapa donde está la casa.');
+      }
+    } catch {
+      if (!silencioso) setMensaje('No se pudo buscar ahora. Inténtalo de nuevo en unos segundos.');
+    } finally {
+      setBuscando(false);
+    }
+  };
+
+  // Si el cliente aún no tiene ubicación, el mapa abre ya centrado en su calle.
+  useEffect(() => {
+    if (autoCentrar && mapa) buscar(textoInicial, { silencioso: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapa]);
+
+  return (
+    <div className="ubi-buscador">
+      <form
+        className="ubi-buscador-form"
+        onSubmit={event => { event.preventDefault(); buscar(texto); }}
+      >
+        <Search size={16} />
+        <input
+          type="text"
+          value={texto}
+          onChange={event => setTexto(event.target.value)}
+          placeholder="Buscar dirección o pegar coordenadas…"
+          aria-label="Buscar dirección en el mapa"
+        />
+        <button type="submit" className="ubi-btn is-primary is-small" disabled={buscando}>
+          {buscando ? 'Buscando…' : 'Buscar'}
+        </button>
+      </form>
+      {mensaje && <p className="ubi-buscador-msg">{mensaje}</p>}
+      {abierto && resultados.length > 0 && (
+        <ul className="ubi-buscador-lista">
+          {resultados.map(item => {
+            const partes = String(item.display_name || '').split(',');
+            return (
+              <li key={item.place_id}>
+                <button type="button" onClick={() => { irA(item); setAbierto(false); }}>
+                  <strong>{partes[0]}</strong>
+                  <small>{partes.slice(1, 4).join(',').trim()}</small>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ModalUbicacion({ cliente, onClose, onSaved }) {
   const { api } = useContext(AuthContext);
   const tieneUbicacion = cliente.latitud !== null && cliente.longitud !== null;
@@ -57,6 +220,8 @@ function ModalUbicacion({ cliente, onClose, onSaved }) {
   const [posicion, setPosicion] = useState(tieneUbicacion ? centroInicial : null);
   const [aplicarMisma, setAplicarMisma] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [mapa, setMapa] = useState(null);
+  const direccionInicial = [cliente.direccion, cliente.distrito].filter(Boolean).join(', ');
 
   const movido = Boolean(posicion) && (
     !tieneUbicacion
@@ -126,6 +291,8 @@ function ModalUbicacion({ cliente, onClose, onSaved }) {
               {tieneUbicacion
                 ? 'Arrastra el pin o haz clic en el mapa para colocarlo en el domicilio correcto.'
                 : 'Haz clic en el mapa para colocar el pin en el domicilio del cliente.'}
+              {' '}Usa el buscador sobre el mapa para llegar a la calle. Si encuentras el lugar exacto en Google Maps,
+              haz clic derecho sobre él, copia las coordenadas y pégalas en el buscador.
             </p>
 
             <label className="ubi-check">
@@ -147,7 +314,14 @@ function ModalUbicacion({ cliente, onClose, onSaved }) {
           </aside>
 
           <div className="ubi-map">
-            <MapContainer key={cliente.id} center={centroInicial} zoom={zoomInicial} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
+            <BuscadorDireccion
+              mapa={mapa}
+              textoInicial={direccionInicial}
+              distrito={cliente.distrito}
+              autoCentrar={!tieneUbicacion}
+              onColocarPin={setPosicion}
+            />
+            <MapContainer ref={setMapa} key={cliente.id} center={centroInicial} zoom={zoomInicial} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <MapClick onPick={setPosicion} />
               {posicion && (
