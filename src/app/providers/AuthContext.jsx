@@ -45,7 +45,7 @@ const FIXED_THEME_VARS = {
 };
 
 const DEFAULT_SEDE = { id: "11111111-1111-1111-1111-000000000001", nombre: "Lima" };
-const PRODUCTION_API_URL = "https://afacop-backend.onrender.com";
+const PRODUCTION_API_URL = "https://api-miradar360.sulotec.com";
 
 function getApiUrl() {
   if (typeof window !== "undefined" && window.location.hostname.endsWith('.devtunnels.ms')) {
