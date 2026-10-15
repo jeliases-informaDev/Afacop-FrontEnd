@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import { useNotification } from '../../app/providers/NotificationContext.jsx';
 import { ChevronLeft, MapPin, FileText, Calendar, User as UserIcon, X, WifiOff } from 'lucide-react';
+import { cargarTodosLosAsesores } from '../../shared/utils/asesores.js';
 
 const GoogleMapsIcon = ({ size = 22 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
@@ -36,7 +37,7 @@ export default function WorkerDetail() {
   useEffect(() => {
     if (!selectedWorker) {
       // Fetch all workers and find
-      radarApi.get('/api/asesores').then(res => {
+      cargarTodosLosAsesores(radarApi).then(res => {
         const w = (res.data.data || []).find(x => x.id === id);
         if (w) setSelectedWorker(w);
       }).catch(console.error);

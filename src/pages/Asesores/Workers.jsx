@@ -5,6 +5,7 @@ import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import { useNotification } from '../../app/providers/NotificationContext.jsx';
 import { ChevronRight, ChevronDown, Check, MapPin, FileText, Calendar, User as UserIcon, X, Search as SearchIcon, WifiOff, UserX } from 'lucide-react';
 import { getAvatarUrl } from '../../shared/utils/avatar.js';
+import { cargarTodosLosAsesores } from '../../shared/utils/asesores.js';
 
 function parseGoogleMapsLink(url) {
   const patterns = [
@@ -165,7 +166,7 @@ export default function Workers() {
     const fetchWorkers = async () => {
       setLoading(true);
       try {
-        const res = await radarApi.get('/api/asesores');
+        const res = await cargarTodosLosAsesores(radarApi);
         setWorkers(res.data.data || []);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
@@ -204,7 +205,7 @@ export default function Workers() {
       res.data.insertados = job.insertadas;
       res.data.errores = job.errores;
       showToast(`Importación completada:\n- Insertados: ${res.data.insertados}\n- Errores: ${res.data.errores}`, 'success');
-      const workersRes = await radarApi.get('/api/asesores');
+      const workersRes = await cargarTodosLosAsesores(radarApi);
       setWorkers(workersRes.data.data || []);
     } catch (err) {
       console.error('Error importing Excel:', err);
@@ -222,7 +223,7 @@ export default function Workers() {
       await radarApi.patch(`/api/asesores/${worker.id}/estado`, { estado: nextStatus });
       showToast(`Asesor ${nextStatus === 'ACTIVO' ? 'activado' : 'inactivado'} correctamente. Se conservó todo su historial.`, 'success');
       setStatusWorker(null);
-      const res = await radarApi.get('/api/asesores');
+      const res = await cargarTodosLosAsesores(radarApi);
       setWorkers(res.data.data || []);
     } catch (e) {
       showToast('Error: ' + (e.response?.data?.mensaje || e.response?.data?.error || e.message), 'error');
@@ -272,7 +273,7 @@ export default function Workers() {
       setNewWorker({ nombres: '', apellido_paterno: '', apellido_materno: '', dni: '', telefono: '', email: '', distrito: '', latitud: '', longitud: '' });
       showToast("Asesor registrado exitosamente", 'success');
       
-      const res = await radarApi.get('/api/asesores');
+      const res = await cargarTodosLosAsesores(radarApi);
       setWorkers(res.data.data || []);
     } catch (e) { 
       console.error("❌ ERROR:", e.response?.data);
@@ -299,7 +300,7 @@ export default function Workers() {
       setEditingWorker(null);
       showToast("Asesor actualizado exitosamente", 'success');
       
-      const res = await radarApi.get('/api/asesores');
+      const res = await cargarTodosLosAsesores(radarApi);
       setWorkers(res.data.data || []);
     } catch (e) { 
       showToast('Error: ' + (e.response?.data?.error || e.response?.data?.mensaje || e.message), 'error'); 
