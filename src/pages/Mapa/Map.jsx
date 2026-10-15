@@ -8,6 +8,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import pinmanIcon from '../../assets/PINMAN.png';
 import CustomDatePicker from '../../shared/ui/CustomDatePicker';
+import { cargarTodosLosAsesores } from '../../shared/utils/asesores.js';
 
 // Fix Leaflet default icon in Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -139,7 +140,7 @@ export default function MapPage() {
 
       const [clientsRes, workersRes] = await Promise.all([
         radarApi.get('/api/clientes/mapa/puntos', { params }),
-        radarApi.get('/api/asesores?limit=1000'),
+        cargarTodosLosAsesores(radarApi),
       ]);
       const allClients = clientsRes.data.data || [];
       const allWorkers = workersRes.data.data || [];

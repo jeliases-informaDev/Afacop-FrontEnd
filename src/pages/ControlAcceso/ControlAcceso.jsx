@@ -4,6 +4,7 @@ import { AuthContext } from '../../app/providers/AuthContext.jsx';
 import { useNotification } from '../../app/providers/NotificationContext.jsx';
 import { ROLES_CONFIG, MODULOS, DEMO_USERS } from '../../app/providers/AuthContext.jsx';
 import { Shield, Users, Search, Plus, Edit2, Trash2, Check, X, Lock, Unlock, Key, AlertTriangle, ChevronRight, Save, RotateCcw } from 'lucide-react';
+import { cargarTodosLosAsesores } from '../../shared/utils/asesores.js';
 
 function AccessFilterSelect({ value, onChange, options, ariaLabel }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -244,7 +245,7 @@ function ModalUsuario({ usuario, onClose, onSave, rolesConfig, api, linkedAdviso
     if (form.rol !== 'ASESOR') return;
     let active = true;
     setAdvisorsLoading(true);
-    api.get('/api/asesores', { params: { estado: 'ACTIVO', limit: 100 } })
+    cargarTodosLosAsesores(api, { params: { estado: 'ACTIVO' } })
       .then(response => { if (active) setAdvisors(Array.isArray(response.data?.data) ? response.data.data : []); })
       .catch(() => { if (active) { setTouched(prev => ({ ...prev, id_asesor: true })); setErrors(prev => ({ ...prev, id_asesor: 'No se pudieron cargar los asesores activos.' })); } })
       .finally(() => { if (active) setAdvisorsLoading(false); });

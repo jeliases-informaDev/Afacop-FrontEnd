@@ -6,6 +6,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline, Circle } from
 import L from 'leaflet';
 import { X, Users, Map as MapIcon, Trash2, Search, ChevronDown, Check } from 'lucide-react';
 import CustomDatePicker from '../../shared/ui/CustomDatePicker';
+import { cargarTodosLosAsesores } from '../../shared/utils/asesores.js';
 
 // Radio de proximidad configurable en kilómetros
 const PROXIMITY_RADIUS_KM = 5;
@@ -900,7 +901,7 @@ export default function Rutas() {
     const controller = new AbortController();
     const fetchAsesores = async () => {
       try {
-        const resAsesores = await radarApi.get('/api/asesores', { signal: controller.signal });
+        const resAsesores = await cargarTodosLosAsesores(radarApi, { signal: controller.signal });
         console.log('DIAGNOSTICO fetchAsesores: resAsesores.data =', resAsesores.data);
         setAsesores(resAsesores.data.data || []);
       } catch (err) {
