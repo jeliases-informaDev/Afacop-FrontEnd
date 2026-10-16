@@ -6,21 +6,7 @@ import { useNotification } from '../../app/providers/NotificationContext.jsx';
 import { ChevronRight, ChevronDown, Check, MapPin, FileText, Calendar, User as UserIcon, X, Search as SearchIcon, WifiOff, UserX } from 'lucide-react';
 import { getAvatarUrl } from '../../shared/utils/avatar.js';
 import { cargarTodosLosAsesores } from '../../shared/utils/asesores.js';
-
-function parseGoogleMapsLink(url) {
-  const patterns = [
-    /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,
-    /@(-?\d+\.\d+),(-?\d+\.\d+)/,
-    /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,
-    /[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
-    /maps\/place\/[^/]+\/(-?\d+\.\d+),(-?\d+\.\d+)/,
-  ];
-  for (const p of patterns) {
-    const m = url.match(p);
-    if (m) return { lat: m[1], lng: m[2] };
-  }
-  return null;
-}
+import SelectorUbicacion from '../../shared/ui/SelectorUbicacion.jsx';
 
 function WorkerFilterSelect({ value, onChange, options, ariaLabel }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -69,64 +55,6 @@ function WorkerFilterSelect({ value, onChange, options, ariaLabel }) {
               </button>
             );
           })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LocationInput({ latitud, longitud, onChange, onDistrictChange }) {
-  const [mode, setMode] = useState('link');
-  const [linkValue, setLinkValue] = useState('');
-  const [addressValue, setAddressValue] = useState('');
-  const [parsed, setParsed] = useState(null);
-  const [error, setError] = useState('');
-
-  const handleLinkChange = (val) => {
-    setLinkValue(val);
-    setError('');
-    if (!val.trim()) { onChange('', ''); setParsed(null); return; }
-    
-    const result = parseGoogleMapsLink(val);
-    if (result) {
-      setParsed(result);
-      onChange(result.lat, result.lng);
-      setError('');
-    } else if (val.length > 10) {
-      setParsed(null);
-      onChange('', '');
-      setError('No se pudo extraer coordenadas. Asegúrate de copiar el enlace completo desde Google Maps.');
-    }
-  };
-
-  const tabStyle = (active) => ({
-    flex: 1, padding: '7px', fontSize: '12px', fontWeight: '700', border: 'none', cursor: 'pointer',
-    background: active ? 'var(--c-primary)' : 'var(--c-surface-2)',
-    color: active ? '#fff' : 'var(--c-muted)',
-    borderRadius: '6px', transition: 'all 0.15s',
-  });
-
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', background: 'var(--c-surface-2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--c-border)' }}>
-        <button type="button" style={tabStyle(mode === 'link')} onClick={() => setMode('link')}>🔗 Enlace de Google Maps</button>
-        <button type="button" style={tabStyle(mode === 'address')} onClick={() => setMode('address')}>📍 Dirección manual</button>
-      </div>
-
-      {mode === 'link' ? (
-        <div>
-          <input className="form-input" style={{ background: 'var(--c-surface)', borderColor: error ? '#ef4444' : undefined }} placeholder="Pega el enlace de Google Maps aquí..." value={linkValue} onChange={e => handleLinkChange(e.target.value)} />
-          {error && <p style={{ fontSize: '11px', color: '#ef4444', marginTop: '5px' }}>{error}</p>}
-          {parsed && (
-            <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>✓ Lat: {parsed.lat}</div>
-              <div style={{ flex: 1, padding: '8px 10px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '6px', fontSize: '12px', color: '#10b981', fontWeight: '700' }}>✓ Lng: {parsed.lng}</div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div>
-          <input className="form-input" style={{ background: 'var(--c-surface)' }} placeholder="Ej: Av. Universitaria 8080, Comas" value={addressValue} onChange={e => { setAddressValue(e.target.value); onChange('', ''); }} />
         </div>
       )}
     </div>
@@ -503,6 +431,15 @@ export default function Workers() {
                   <label className="form-label" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '900' }}>Distrito Base</label>
                   <input className="form-input" style={{ background: 'var(--c-surface)' }} value={editingWorker.distrito || ''} onChange={e => setEditingWorker({...editingWorker, distrito: e.target.value})} />
                 </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '900' }}>Ubicación base</label>
+                  <SelectorUbicacion
+                    latitud={editingWorker.latitud}
+                    longitud={editingWorker.longitud}
+                    onChange={(lat, lng) => setEditingWorker(actual => ({ ...actual, latitud: lat, longitud: lng }))}
+                    onDistrictChange={(distrito) => setEditingWorker(actual => ({ ...actual, distrito }))}
+                  />
+                </div>
               </div>
               <div className="modal-footer" style={{ padding: '24px 40px', background: 'var(--c-surface-2)', borderTop: '1px solid var(--c-border)', display: 'flex', gap: '16px', justifyContent: 'flex-end', flexShrink: 0 }}>
                 <button type="button" className="btn btn-ghost" onClick={() => setEditingWorker(null)}>Cancelar</button>
@@ -609,7 +546,7 @@ export default function Workers() {
                 <div className="form-group"><label className="form-label">Distrito Base</label><input className="form-input" placeholder="Ingrese su distrito" value={newWorker.distrito} onChange={e => setNewWorker({...newWorker, distrito: e.target.value})} /></div>
                 <div className="form-group">
                   <label className="form-label" >Ubicación</label>
-                  <LocationInput
+                  <SelectorUbicacion
                     latitud={newWorker.latitud}
                     longitud={newWorker.longitud}
                     onChange={(lat, lng) => setNewWorker(actual => ({...actual, latitud: lat, longitud: lng}))}
