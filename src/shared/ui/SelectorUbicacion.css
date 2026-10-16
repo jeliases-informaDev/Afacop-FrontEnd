@@ -1,0 +1,44 @@
+/* Selector de ubicacion con mapa (buscador + mapa + pie). Usa las variables de color de la aplicacion. */
+.selub { position: relative; display: flex; flex-direction: column; gap: 8px; }
+
+.selub-busqueda {
+  display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px;
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 10px; color: var(--c-muted);
+}
+.selub-busqueda:focus-within { border-color: var(--c-primary); }
+.selub-busqueda input {
+  flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--c-text); font-size: 13px; padding: 6px 0;
+}
+.selub-boton {
+  flex-shrink: 0; border: none; cursor: pointer; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;
+  background: var(--c-primary); color: #fff;
+}
+.selub-boton:disabled { opacity: 0.6; cursor: default; }
+
+/* La lista de resultados flota sobre el mapa (Leaflet usa z-index de hasta 1000) */
+.selub-resultados {
+  position: absolute; top: 46px; left: 0; right: 0; z-index: 1200; margin: 0; padding: 4px; list-style: none;
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 10px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  max-height: 240px; overflow-y: auto;
+}
+.selub-resultados button {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 8px 10px;
+  border: none; border-radius: 8px; background: transparent; color: var(--c-text); text-align: left; cursor: pointer;
+}
+.selub-resultados button:hover, .selub-resultados button:focus-visible { background: var(--c-surface-2); outline: none; }
+.selub-resultados strong { font-size: 13px; }
+.selub-resultados small { font-size: 11px; color: var(--c-muted); }
+
+.selub-mensaje { margin: 0; font-size: 12px; color: var(--c-muted); }
+
+.selub-mapa { border: 1px solid var(--c-border); border-radius: 12px; overflow: hidden; position: relative; z-index: 0; }
+
+.selub-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12px; }
+.selub-ok { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: #10b981; min-width: 0; }
+.selub-coordenadas { color: var(--c-muted); font-variant-numeric: tabular-nums; }
+.selub-quitar {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; cursor: pointer;
+  font-size: 11px; font-weight: 700; color: var(--c-muted); background: var(--c-surface-2); border: 1px solid var(--c-border);
+}
+.selub-quitar:hover { color: #ef4444; border-color: #ef4444; }
+.selub-aviso { color: #f59e0b; font-weight: 600; }
