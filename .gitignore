@@ -1,3 +1,41 @@
+# Dependencias
 node_modules/
-.env
+/.pnp
+.pnp.js
+
+# Producción / Builds
 dist/
+dist-ssr/
+*.local
+
+# Variables de entorno privadas
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editores / IDEs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Agentes y herramientas de entorno local
+.gemini/
+.agents/

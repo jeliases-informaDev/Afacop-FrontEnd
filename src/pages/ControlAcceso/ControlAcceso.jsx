@@ -263,7 +263,11 @@ function FormNuevoAsesor({ register, watch, setValue, errors }) {
                                    if (tipoDocActual === 'DNI') clean = clean.replace(/\D/g, '').slice(0, 8);
                                    if (tipoDocActual === 'CE') clean = clean.replace(/[^A-Za-z0-9]/g, '').slice(0, 9).toUpperCase();
                                    setValue('dni', clean);
-                                   if (!watch('username')) setValue('username', clean, { shouldValidate: true });
+                                   const currentUsername = watch('username');
+                                   const prevClean = clean.slice(0, -1);
+                                   if (!currentUsername || currentUsername === prevClean) {
+                                       setValue('username', clean, { shouldValidate: true });
+                                   }
                                },
                                validate: (val) => {
                                    if (tipoDocActual === 'DNI' && !/^\d{8}$/.test(val)) return 'DNI inválido';
@@ -351,7 +355,9 @@ function FormSeguridadYEstado({ watch, setValue, isCurrentUser }) {
 function ModalUsuario({ usuario, onClose, onSave, rolesConfig, isCurrentUser = false }) {
     const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm({
         defaultValues: usuario ? {
-            ...usuario, tipo_documento: usuario.tipo_documento || 'DNI', dni: usuario.dni || '', telefono: usuario.telefono || '',
+            ...usuario,
+            apellidos: usuario.apellidos || `${usuario.apellido_paterno || ''} ${usuario.apellido_materno || ''}`.trim(),
+            tipo_documento: usuario.tipo_documento || 'DNI', dni: usuario.dni || '', telefono: usuario.telefono || '',
             apellido_paterno: usuario.apellido_paterno || '', apellido_materno: usuario.apellido_materno || '', distrito: usuario.distrito || '',
             password: ''
         } : {
@@ -508,7 +514,7 @@ export default function ControlAcceso() {
     }, [localUsuarios, search, filtroRol, filtroEstado]);
 
     const [userPage, setUserPage] = useState(1);
-    const usersPerPage = 3;
+    const usersPerPage = 8;
     const totalUserPages = Math.max(1, Math.ceil(filtered.length / usersPerPage));
     const currentUserPage = Math.min(userPage, totalUserPages);
     const paginatedUsers = filtered.slice((currentUserPage - 1) * usersPerPage, currentUserPage * usersPerPage);
@@ -517,7 +523,7 @@ export default function ControlAcceso() {
     useEffect(() => { setUserPage(page => Math.min(page, totalUserPages)); }, [totalUserPages]);
 
     const handleSave = async (usuario) => {
-        const changedOwnPassword = usuario.id === user?.id && Boolean(usuario.password);
+        const changedOwnPassword = Boolean(user?.id && String(usuario.id) === String(user.id) && usuario.password);
         try {
             let finalAdvisorId = usuario.id_asesor;
             if (usuario.rol === 'ASESOR' && usuario.isNewAdvisor && !finalAdvisorId) {
@@ -550,8 +556,9 @@ export default function ControlAcceso() {
                 id_asesor: usuario.rol === 'ASESOR' ? Number(finalAdvisorId) : null,
             };
 
-            const response = usuario.id && !usuario.id.startsWith('u') ? await api.put(`/api/usuarios/${usuario.id}`, payload) : await api.post('/api/usuarios', payload);
-            const saved = response.data.data;
+            const esUsuarioExistente = Boolean(usuario.id && !String(usuario.id).startsWith('u'));
+            const response = esUsuarioExistente ? await api.put(`/api/usuarios/${usuario.id}`, payload) : await api.post('/api/usuarios', payload);
+            const saved = response.data?.data || response.data;
             setUsuarios(localUsuarios.find(u => u.id === saved.id) ? localUsuarios.map(u => u.id === saved.id ? saved : u) : [...localUsuarios, saved]);
             setModal(null);
 
@@ -666,7 +673,7 @@ export default function ControlAcceso() {
                             <thead><tr style={{ background: '#F8F9FA' }}>{['Operador', 'Correo', 'Rol', 'Sede', 'Módulos', 'Estado', 'Acciones'].map(h => <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontSize: '10px', fontWeight: '800', color: '#6C757D', textTransform: 'uppercase', letterSpacing: '0.8px', borderBottom: '1px solid #E5E7EB' }}>{h}</th>)}</tr></thead>
                             <tbody>
                             {filtered.length === 0 ? <tr className="access-empty-row"><td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}><Shield size={28} color="#DEE2E6" style={{ display: 'block', margin: '0 auto 10px' }} />No se encontraron operadores</td></tr> : paginatedUsers.map((u, i) => {
-                                const rolCfg = currentRolesConfig[u.rol] || { modulos: [] }; const isCurrentUser = u.id === user?.id;
+                                const rolCfg = currentRolesConfig[u.rol] || { modulos: [] }; const isCurrentUser = Boolean(user?.id && String(u.id) === String(user.id));
                                 return (
                                     <tr key={u.id} style={{ borderBottom: i < paginatedUsers.length - 1 ? '1px solid #F3F4F6' : 'none', transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = '#FAFBFF'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                                         <td data-label="Operador" style={{ padding: '12px 16px' }}><div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><div style={{ width: '36px', height: '36px', borderRadius: '10px', background: (currentRolesConfig[u.rol] || ROLES_CONFIG.ASESOR).bg, color: (currentRolesConfig[u.rol] || ROLES_CONFIG.ASESOR).color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '800', flexShrink: 0 }}>{(u.nombres || '?')[0]}</div><div><div style={{ fontSize: '13px', fontWeight: '700', color: '#212529' }}>{u.nombres} {u.apellidos}</div><div style={{ fontSize: '11px', color: '#9CA3AF', fontFamily: 'monospace' }}>@{u.username}</div></div></div></td>
@@ -812,7 +819,7 @@ export default function ControlAcceso() {
             {modal && (
                 <ModalUsuario
                     usuario={modal.mode === 'edit' ? modal.usuario : null}
-                    isCurrentUser={modal.mode === 'edit' && modal.usuario?.id === user?.id}
+                    isCurrentUser={modal.mode === 'edit' && Boolean(user?.id && String(modal.usuario?.id) === String(user.id))}
                     onClose={() => setModal(null)} onSave={handleSave} rolesConfig={currentRolesConfig} api={api}
                     linkedAdvisorIds={localUsuarios.map(item => Number(item.id_asesor)).filter(Number.isInteger)}
                 />
