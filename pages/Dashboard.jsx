@@ -4,15 +4,19 @@ import {
   Users, Wallet, Activity, Map as MapIcon,
   CheckCircle, AlertCircle, Calendar, TrendingUp,
   Download, ArrowRight, Clock, X,
-  Route, RefreshCw, MapPin
+  Route, RefreshCw, MapPin, CircleDollarSign
 } from 'lucide-react';
 import { getAvatarUrl } from '../utils/avatar.js';
 import CustomDatePicker from '../components/CustomDatePicker';
 
 /* ── Counter ─────────────────────────────────────────────────── */
-function AnimatedNumber({ value }) {
+function AnimatedNumber({ value, isCurrency = false }) {
   // No animar el KPI: un valor intermedio puede confundirse con el total real.
   const number = Number(value);
+  if (!Number.isFinite(number)) return <span>{isCurrency ? 'S/ 0.00' : '0'}</span>;
+  if (isCurrency) {
+    return <span>{number.toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+  }
   return <span>{Number.isFinite(number) ? number.toLocaleString('es-PE') : '0'}</span>;
 }
 
@@ -98,6 +102,15 @@ export default function Dashboard() {
   /* ── Stat card data ────────────────────────────────────────── */
   const statCards = [
     { label: 'Total clientes', value: stats.totalClientes, sub: 'Cartera total', Icon: Users, bgColor: 'linear-gradient(135deg, var(--c-primary), #3047D8)', shadowColor: '#3047D8' },
+    {
+      label: 'Deuda Total',
+      value: stats?.deudaTotal ?? stats?.deuda_total ?? 0,
+      sub: 'Cartera importada',
+      isCurrency: true,
+      Icon: CircleDollarSign,
+      bgColor: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+      shadowColor: '#7C3AED',
+    },
     { label: 'Pagos hoy', value: stats.clientesPagoHoy, sub: 'Vencen hoy', Icon: Wallet, bgColor: 'linear-gradient(135deg, #16A34A, #34D399)', shadowColor: '#34D399' },
     { label: 'Asesores Activos', value: stats.workersActivos, sub: 'En jornada', Icon: Activity, bgColor: 'linear-gradient(135deg, #E0A800, #FACC15)', shadowColor: '#FACC15' },
     { label: 'Rutas Programadas', value: stats.rutasHoy, sub: 'Asignadas para hoy', Icon: MapIcon, bgColor: 'linear-gradient(135deg, #DC3545, #F87171)', shadowColor: '#F87171' },
@@ -139,7 +152,9 @@ export default function Dashboard() {
           >
             <div className="b2b-stat-card-content">
               {/* Value */}
-              <p className="b2b-stat-card-value"><AnimatedNumber value={card.value} /></p>
+              <p className="b2b-stat-card-value" style={card.isCurrency ? { fontSize: 'clamp(18px, 1.4vw, 24px)', whiteSpace: 'nowrap' } : undefined}>
+                <AnimatedNumber value={card.value} isCurrency={card.isCurrency} />
+              </p>
 
               {/* Bottom info */}
               <div>

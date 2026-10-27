@@ -488,8 +488,14 @@
 }
 
 .dashboard-stats-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   gap: clamp(10px, 1.4vw, 20px) !important;
+}
+
+@media (max-width: 1360px) {
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  }
 }
 
 .dashboard-lower-grid {
