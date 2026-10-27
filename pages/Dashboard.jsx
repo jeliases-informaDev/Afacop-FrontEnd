@@ -13,9 +13,9 @@ import CustomDatePicker from '../components/CustomDatePicker';
 function AnimatedNumber({ value, isCurrency = false }) {
   // No animar el KPI: un valor intermedio puede confundirse con el total real.
   const number = Number(value);
-  if (!Number.isFinite(number)) return <span>{isCurrency ? 'S/ 0.00' : '0'}</span>;
+  if (!Number.isFinite(number)) return <span>{isCurrency ? 'S/ 0' : '0'}</span>;
   if (isCurrency) {
-    return <span>{number.toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+    return <span>{number.toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>;
   }
   return <span>{Number.isFinite(number) ? number.toLocaleString('es-PE') : '0'}</span>;
 }
